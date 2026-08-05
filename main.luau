@@ -61,13 +61,26 @@ local Assets = {
 	['vape.png'] = 'rbxassetid://14373395239'
 }
 
+local function Make(ClassName, Properties, Children)
+	local a = Instance.new(ClassName)
+	for i,v in pairs(Properties or {}) do
+		a[i] = v
+	end
+	for _, v in pairs(Children or {}) do
+		v.Parent = a
+	end
+	return a
+end
+
 local function GetTextSize(Text, font, MaxWidth, FontSize)
 	if not (Text and font and MaxWidth and FontSize) then return Vector2.new(0,0) end 
-	local TB = Instance.new('GetTextBoundsParams', nil)
-	TB.Width = MaxWidth or math.huge
-	TB.Size = FontSize or 16
-	TB.Text = Text
-	TB.Font = font
+	local TB = Make("GetTextBoundsParams", {
+		Parent = nil,
+		Width = MaxWidth or math.huge,
+		Size = FontSize or 16,
+		Text = Text,
+		Font = font
+	})
 	return TextService:GetTextBoundsAsync(TB)
 end
 
@@ -115,34 +128,23 @@ local function TweenSize(obj, new_size)
 end
 
 local function MakeBlur(parent, notif)
-	local Blur = Instance.new('ImageLabel')
-	Blur.Name = 'Blur'
-	Blur.Size = UDim2.new(1, 89, 1, 52)
-	Blur.Position = UDim2.fromOffset(-48, -31)
-	Blur.BackgroundTransparency = 1
-	Blur.Image = GetAsset((notif and 'Blurnotif' or 'Blur')..'.png')
-	Blur.ScaleType = Enum.ScaleType.Slice
-	Blur.SliceCenter = Rect.new(52, 31, 261, 502)
-	Blur.Parent = parent or nil
-	return Blur
+	return Make('ImageLabel', {
+		Name = 'Blur',
+		Size = UDim2.new(1, 89, 1, 52),
+		Position = UDim2.fromOffset(-48, -31),
+		BackgroundTransparency = 1,
+		Image = GetAsset((notif and 'Blurnotif' or 'Blur')..'.png'),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(52, 31, 261, 502),
+		Parent = parent or nil
+	})
 end
 
 local function MakeCorner(parent, radius)
-	local Corner = Instance.new('UICorner')
-	Corner.CornerRadius = radius or UDim.new(0, 5)
-	Corner.Parent = parent
-	return Corner
-end
-
-local function Make(ClassName, Properties, Children)
-	local a = Instance.new(ClassName)
-	for i,v in pairs(Properties or {}) do
-		a[i] = v
-	end
-	for _, v in pairs(Children or {}) do
-		v.Parent = a
-	end
-	return a
+	return Make('UICorner', {
+		CornerRadius = radius or UDim.new(0, 5),
+		Parent = parent
+	})
 end
 
 local function MakeDraggable(gui, window)
@@ -223,17 +225,18 @@ local function addMaid(object)
 end
 
 local function addCloseButton(parent, offset)
-	local close = Instance.new('ImageButton')
-	close.Name = 'Close'
-	close.Size = UDim2.fromOffset(24, 24)
-	close.Position = UDim2.new(1, -35, 0, offset or 9)
-	close.BackgroundColor3 = Color3.new(1, 1, 1)
-	close.BackgroundTransparency = 1
-	close.AutoButtonColor = false
-	close.Image = GetAsset('close.png')
-	close.ImageColor3 = ColorLight(VapeLibrary.Internal.Pallet.Text, 0.2)
-	close.ImageTransparency = 0.5
-	close.Parent = parent
+	local close = Make('ImageButton', {
+		Name = 'Close',
+		Size = UDim2.fromOffset(24, 24),
+		Position = UDim2.new(1, -35, 0, offset or 9),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Image = GetAsset('close.png'),
+		ImageColor3 = ColorLight(VapeLibrary.Internal.Pallet.Text, 0.2),
+		ImageTransparency = 0.5,
+		Parent = parent
+	})
 	MakeCorner(close, UDim.new(1, 0))
 
 	close.MouseEnter:Connect(function()
@@ -262,25 +265,27 @@ local function CreateToggle(optionsettings, children, api)
 	}
 
 	local hovered = false
-	local toggle = Instance.new('TextButton')
-	toggle.Name = (optionsettings.Title or 'Default Name')..'Toggle'
-	toggle.Size = UDim2.new(1, 0, 0, 30)
-	toggle.BackgroundColor3 = Pallet.Module
-	toggle.BorderSizePixel = 0
-	toggle.AutoButtonColor = false
-	toggle.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	toggle.Text = '   '..(optionsettings.Title or 'Default Name')
-	toggle.TextXAlignment = Enum.TextXAlignment.Left
-	toggle.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	toggle.TextSize = 14
-	toggle.FontFace = Pallet.Font
-	toggle.Parent = children
-	local knobholder = Instance.new('Frame')
-	knobholder.Name = 'Knob'
-	knobholder.Size = UDim2.fromOffset(22, 12)
-	knobholder.Position = UDim2.new(1, -30, 0, 9)
-	knobholder.BackgroundColor3 = ColorLight(Pallet.Main, 0.14)
-	knobholder.Parent = toggle
+	local toggle = Make('TextButton', {
+		Name = (optionsettings.Title or 'Default Name')..'Toggle',
+		Size = UDim2.new(1, 0, 0, 30),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Visible = optionsettings.Visible == nil or optionsettings.Visible,
+		Text = '   '..(optionsettings.Title or 'Default Name'),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 14,
+		FontFace = Pallet.Font,
+		Parent = children
+	})
+	local knobholder = Make('Frame', {
+		Name = 'Knob',
+		Size = UDim2.fromOffset(22, 12),
+		Position = UDim2.new(1, -30, 0, 9),
+		BackgroundColor3 = ColorLight(Pallet.Main, 0.14),
+		Parent = toggle
+	})
 	MakeCorner(knobholder, UDim.new(1, 0))
 	local knob = knobholder:Clone()
 	knob.Size = UDim2.fromOffset(8, 8)
@@ -337,30 +342,33 @@ end
 -- Component: Button
 local function CreateButton(optionsettings, children, api)
 	local Pallet = VapeLibrary.Internal.Pallet
-	local button = Instance.new('TextButton')
-	button.Name = (optionsettings.Title or 'Default Name')..'Button'
-	button.Size = UDim2.new(1, 0, 0, 31)
-	button.BackgroundColor3 = Pallet.Module
-	button.BorderSizePixel = 0
-	button.AutoButtonColor = false
-	button.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	button.Text = ''
-	button.Parent = children
-	local bkg = Instance.new('Frame')
-	bkg.Size = UDim2.fromOffset(200, 27)
-	bkg.Position = UDim2.fromOffset(10, 2)
-	bkg.BackgroundColor3 = ColorLight(Pallet.Main, 0.05)
-	bkg.Parent = button
+	local button = Make('TextButton', {
+		Name = (optionsettings.Title or 'Default Name')..'Button',
+		Size = UDim2.new(1, 0, 0, 31),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Visible = optionsettings.Visible == nil or optionsettings.Visible,
+		Text = '',
+		Parent = children
+	})
+	local bkg = Make('Frame', {
+		Size = UDim2.fromOffset(200, 27),
+		Position = UDim2.fromOffset(10, 2),
+		BackgroundColor3 = ColorLight(Pallet.Main, 0.05),
+		Parent = button
+	})
 	MakeCorner(bkg)
-	local label = Instance.new('TextLabel')
-	label.Size = UDim2.new(1, -4, 1, -4)
-	label.Position = UDim2.fromOffset(2, 2)
-	label.BackgroundColor3 = Pallet.Main
-	label.Text = optionsettings.Title or 'Default Name'
-	label.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	label.TextSize = 14
-	label.FontFace = Pallet.Font
-	label.Parent = bkg
+	local label = Make('TextLabel', {
+		Size = UDim2.new(1, -4, 1, -4),
+		Position = UDim2.fromOffset(2, 2),
+		BackgroundColor3 = Pallet.Main,
+		Text = optionsettings.Title or 'Default Name',
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 14,
+		FontFace = Pallet.Font,
+		Parent = bkg
+	})
 	MakeCorner(label, UDim.new(0, 4))
 
 	button.MouseEnter:Connect(function()
@@ -392,78 +400,85 @@ local function CreateSlider(optionsettings, children, api)
 		Index = getTableSize(api.Options)
 	}
 
-	local slider = Instance.new('TextButton')
-	slider.Name = (optionsettings.Title or 'Default Name')..'Slider'
-	slider.Size = UDim2.new(1, 0, 0, 50)
-	slider.BackgroundColor3 = Pallet.Module
-	slider.BorderSizePixel = 0
-	slider.AutoButtonColor = false
-	slider.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	slider.Text = ''
-	slider.Parent = children
-	local title = Instance.new('TextLabel')
-	title.Name = 'Title'
-	title.Size = UDim2.fromOffset(60, 30)
-	title.Position = UDim2.fromOffset(10, 2)
-	title.BackgroundTransparency = 1
-	title.Text = optionsettings.Title or 'Default Name'
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	title.TextSize = 11
-	title.FontFace = Pallet.Font
-	title.Parent = slider
-	local valuebutton = Instance.new('TextButton')
-	valuebutton.Name = 'Value'
-	valuebutton.Size = UDim2.fromOffset(60, 15)
-	valuebutton.Position = UDim2.new(1, -69, 0, 9)
-	valuebutton.BackgroundTransparency = 1
-	valuebutton.Text = (optionsettings.Prefix or '')..optionapi.Value..(optionsettings.Suffix and ' '..(type(optionsettings.Suffix) == 'function' and optionsettings.Suffix(optionapi.Value) or optionsettings.Suffix) or '')
-	valuebutton.TextXAlignment = Enum.TextXAlignment.Right
-	valuebutton.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	valuebutton.TextSize = 11
-	valuebutton.FontFace = Pallet.Font
-	valuebutton.Parent = slider
-	local valuebox = Instance.new('TextBox')
-	valuebox.Name = 'Box'
-	valuebox.Size = valuebutton.Size
-	valuebox.Position = valuebutton.Position
-	valuebox.BackgroundTransparency = 1
-	valuebox.Visible = false
-	valuebox.Text = optionapi.Value
-	valuebox.TextXAlignment = Enum.TextXAlignment.Right
-	valuebox.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	valuebox.TextSize = 11
-	valuebox.FontFace = Pallet.Font
-	valuebox.ClearTextOnFocus = false
-	valuebox.Parent = slider
-	local bkg = Instance.new('Frame')
-	bkg.Name = 'Slider'
-	bkg.Size = UDim2.new(1, -20, 0, 2)
-	bkg.Position = UDim2.fromOffset(10, 37)
-	bkg.BackgroundColor3 = ColorLight(Pallet.Main, 0.034)
-	bkg.BorderSizePixel = 0
-	bkg.Parent = slider
+	local slider = Make('TextButton', {
+		Name = (optionsettings.Title or 'Default Name')..'Slider',
+		Size = UDim2.new(1, 0, 0, 50),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Visible = optionsettings.Visible == nil or optionsettings.Visible,
+		Text = '',
+		Parent = children
+	})
+	local title = Make('TextLabel', {
+		Name = 'Title',
+		Size = UDim2.fromOffset(60, 30),
+		Position = UDim2.fromOffset(10, 2),
+		BackgroundTransparency = 1,
+		Text = optionsettings.Title or 'Default Name',
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 11,
+		FontFace = Pallet.Font,
+		Parent = slider
+	})
+	local valuebutton = Make('TextButton', {
+		Name = 'Value',
+		Size = UDim2.fromOffset(60, 15),
+		Position = UDim2.new(1, -69, 0, 9),
+		BackgroundTransparency = 1,
+		Text = (optionsettings.Prefix or '')..optionapi.Value..(optionsettings.Suffix and ' '..(type(optionsettings.Suffix) == 'function' and optionsettings.Suffix(optionapi.Value) or optionsettings.Suffix) or ''),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 11,
+		FontFace = Pallet.Font,
+		Parent = slider
+	})
+	local valuebox = Make('TextBox', {
+		Name = 'Box',
+		Size = valuebutton.Size,
+		Position = valuebutton.Position,
+		BackgroundTransparency = 1,
+		Visible = false,
+		Text = optionapi.Value,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 11,
+		FontFace = Pallet.Font,
+		ClearTextOnFocus = false,
+		Parent = slider
+	})
+	local bkg = Make('Frame', {
+		Name = 'Slider',
+		Size = UDim2.new(1, -20, 0, 2),
+		Position = UDim2.fromOffset(10, 37),
+		BackgroundColor3 = ColorLight(Pallet.Main, 0.034),
+		BorderSizePixel = 0,
+		Parent = slider
+	})
 	local fill = bkg:Clone()
 	fill.Name = 'Fill'
 	fill.Size = UDim2.fromScale(math.clamp((optionapi.Value - (optionsettings.Min or 0)) / (optionsettings.Max or 10), 0.04, 0.96), 1)
 	fill.Position = UDim2.new()
 	fill.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value)
 	fill.Parent = bkg
-	local knobholder = Instance.new('Frame')
-	knobholder.Name = 'Knob'
-	knobholder.Size = UDim2.fromOffset(24, 4)
-	knobholder.Position = UDim2.fromScale(1, 0.5)
-	knobholder.AnchorPoint = Vector2.new(0.5, 0.5)
-	knobholder.BackgroundColor3 = slider.BackgroundColor3
-	knobholder.BorderSizePixel = 0
-	knobholder.Parent = fill
-	local knob = Instance.new('Frame')
-	knob.Name = 'Knob'
-	knob.Size = UDim2.fromOffset(14, 14)
-	knob.Position = UDim2.fromScale(0.5, 0.5)
-	knob.AnchorPoint = Vector2.new(0.5, 0.5)
-	knob.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value)
-	knob.Parent = knobholder
+	local knobholder = Make('Frame', {
+		Name = 'Knob',
+		Size = UDim2.fromOffset(24, 4),
+		Position = UDim2.fromScale(1, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = slider.BackgroundColor3,
+		BorderSizePixel = 0,
+		Parent = fill
+	})
+	local knob = Make('Frame', {
+		Name = 'Knob',
+		Size = UDim2.fromOffset(14, 14),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value),
+		Parent = knobholder
+	})
 	MakeCorner(knob, UDim.new(1, 0))
 	optionsettings.Increment = optionsettings.Increment or 1
 	optionsettings.Min = optionsettings.Min or 0
@@ -557,48 +572,59 @@ local function CreateDropdown(optionsettings, children, api)
 		Index = getTableSize(api.Options)
 	}
 
-	local dropdown = Instance.new('TextButton')
-	dropdown.Name = (optionsettings.Title or 'Default Name')..'Dropdown'
-	dropdown.Size = UDim2.new(1, 0, 0, 54)
-	dropdown.BackgroundColor3 = Pallet.Module
-	dropdown.BorderSizePixel = 0
-	dropdown.AutoButtonColor = false
-	dropdown.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	dropdown.Text = ''
-	dropdown.Parent = children
+	local dropdown = Make('TextButton', {
+		Name = (optionsettings.Title or 'Default Name')..'Dropdown',
+		Size = UDim2.new(1, 0, 0, 54),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Visible = optionsettings.Visible == nil or optionsettings.Visible,
+		Text = '',
+		Parent = children
+	})
 
-	local titleLabel = Instance.new('TextLabel')
-	titleLabel.Name = 'Title'
-	titleLabel.Size = UDim2.new(1, -20, 0, 20)
-	titleLabel.Position = UDim2.fromOffset(10, 2)
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = (optionsettings.Title or 'Default Name')
-	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-	titleLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	titleLabel.TextSize = 12
-	titleLabel.FontFace = Pallet.Font
-	titleLabel.Parent = dropdown
+	local titleLabel = Make('TextLabel', {
+		Name = 'Title',
+		Size = UDim2.new(1, -20, 0, 20),
+		Position = UDim2.fromOffset(10, 2),
+		BackgroundTransparency = 1,
+		Text = (optionsettings.Title or 'Default Name'),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 12,
+		FontFace = Pallet.Font,
+		Parent = dropdown
+	})
 
-	local bkg = Instance.new('Frame')
-	bkg.Name = 'BKG'
-	bkg.Size = UDim2.new(1, -20, 0, 26)
-	bkg.Position = UDim2.fromOffset(10, 24)
-	bkg.BackgroundColor3 = ColorLight(Pallet.Main, 0.034)
-	bkg.Parent = dropdown
+	local bkg = Make('Frame', {
+		Name = 'BKG',
+		Size = UDim2.new(1, -20, 0, 26),
+		Position = UDim2.fromOffset(10, 24),
+		BackgroundColor3 = ColorLight(Pallet.Main, 0.034),
+		Parent = dropdown
+	})
 	MakeCorner(bkg, UDim.new(0, 6))
-	local button = Instance.new('TextButton')
-	button.Name = 'Dropdown'
-	button.Size = UDim2.new(1, -2, 1, -2)
-	button.Position = UDim2.fromOffset(1, 1)
-	button.BackgroundColor3 = Pallet.Main
-	button.AutoButtonColor = false
-	button.Text = ''
-	button.Parent = bkg
-	local displayLabel = Instance.new('TextLabel')
-	displayLabel.Name = 'Display'
-	displayLabel.Size = UDim2.new(1, -24, 1, 0)
-	displayLabel.Position = UDim2.fromOffset(8, 0)
-	displayLabel.BackgroundTransparency = 1
+	local button = Make('TextButton', {
+		Name = 'Dropdown',
+		Size = UDim2.new(1, -2, 1, -2),
+		Position = UDim2.fromOffset(1, 1),
+		BackgroundColor3 = Pallet.Main,
+		AutoButtonColor = false,
+		Text = '',
+		Parent = bkg
+	})
+	local displayLabel = Make('TextLabel', {
+		Name = 'Display',
+		Size = UDim2.new(1, -24, 1, 0),
+		Position = UDim2.fromOffset(8, 0),
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 12,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		FontFace = Pallet.Font,
+		Parent = button
+	})
 	local displayValue
 	if optionsettings.AllowMultiple then
 		displayValue = #optionapi.Value > 0 and table.concat(optionapi.Value, ", ") or "None"
@@ -606,22 +632,17 @@ local function CreateDropdown(optionsettings, children, api)
 		displayValue = optionapi.Value
 	end
 	displayLabel.Text = displayValue
-	displayLabel.TextXAlignment = Enum.TextXAlignment.Left
-	displayLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	displayLabel.TextSize = 12
-	displayLabel.TextTruncate = Enum.TextTruncate.AtEnd
-	displayLabel.FontFace = Pallet.Font
-	displayLabel.Parent = button
 	MakeCorner(button, UDim.new(0, 6))
-	local arrow = Instance.new('ImageLabel')
-	arrow.Name = 'Arrow'
-	arrow.Size = UDim2.fromOffset(4, 8)
-	arrow.Position = UDim2.new(1, -14, 0, 9)
-	arrow.BackgroundTransparency = 1
-	arrow.Image = GetAsset('expandright.png')
-	arrow.ImageColor3 = Color3.fromRGB(140, 140, 140)
-	arrow.Rotation = 90
-	arrow.Parent = button
+	local arrow = Make('ImageLabel', {
+		Name = 'Arrow',
+		Size = UDim2.fromOffset(4, 8),
+		Position = UDim2.new(1, -14, 0, 9),
+		BackgroundTransparency = 1,
+		Image = GetAsset('expandright.png'),
+		ImageColor3 = Color3.fromRGB(140, 140, 140),
+		Rotation = 90,
+		Parent = button
+	})
 	local dropdownchildren
 	local optionButtons = {}
 	local outsideClickConnection
@@ -660,29 +681,31 @@ local function CreateDropdown(optionsettings, children, api)
 	local function openDropdown()
 		arrow.Rotation = 270
 		dropdown.Size = UDim2.new(1, 0, 0, 54 + (#optionsList) * 26)
-		dropdownchildren = Instance.new('Frame')
-		dropdownchildren.Name = 'Children'
-		dropdownchildren.Size = UDim2.new(1, 0, 0, (#optionsList) * 26)
-		dropdownchildren.Position = UDim2.fromOffset(0, 51)
-		dropdownchildren.BackgroundTransparency = 1
-		dropdownchildren.Parent = dropdown
+		dropdownchildren = Make('Frame', {
+			Name = 'Children',
+			Size = UDim2.new(1, 0, 0, (#optionsList) * 26),
+			Position = UDim2.fromOffset(0, 51),
+			BackgroundTransparency = 1,
+			Parent = dropdown
+		})
 		local ind = 0
 		for _, v in optionsList do
 			local selected = isOptionSelected(v)
-			local dropdownoption = Instance.new('TextButton')
-			dropdownoption.Name = v..'Option'
-			dropdownoption.Size = UDim2.new(1, 0, 0, 26)
-			dropdownoption.Position = UDim2.fromOffset(0, ind * 26)
-			dropdownoption.BackgroundColor3 = selected and Pallet.ModuleLight or Pallet.Main
-			dropdownoption.BorderSizePixel = 0
-			dropdownoption.AutoButtonColor = false
-			dropdownoption.Text = '        '..v
-			dropdownoption.TextXAlignment = Enum.TextXAlignment.Left
-			dropdownoption.TextColor3 = ColorDark(Pallet.Text, 0.16)
-			dropdownoption.TextSize = 13
-			dropdownoption.TextTruncate = Enum.TextTruncate.AtEnd
-			dropdownoption.FontFace = Pallet.Font
-			dropdownoption.Parent = dropdownchildren
+			local dropdownoption = Make('TextButton', {
+				Name = v..'Option',
+				Size = UDim2.new(1, 0, 0, 26),
+				Position = UDim2.fromOffset(0, ind * 26),
+				BackgroundColor3 = selected and Pallet.ModuleLight or Pallet.Main,
+				BorderSizePixel = 0,
+				AutoButtonColor = false,
+				Text = '        '..v,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = ColorDark(Pallet.Text, 0.16),
+				TextSize = 13,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				FontFace = Pallet.Font,
+				Parent = dropdownchildren
+			})
 			optionButtons[v] = dropdownoption
 			dropdownoption.MouseEnter:Connect(function()
 				Tween(dropdownoption, Pallet.Tween, {
@@ -788,45 +811,49 @@ local function CreateTextBox(optionsettings, children, api)
 		Index = 0
 	}
 
-	local textbox = Instance.new('TextButton')
-	textbox.Name = (optionsettings.Title or 'Default Name')..'TextBox'
-	textbox.Size = UDim2.new(1, 0, 0, 58)
-	textbox.BackgroundColor3 = Pallet.Module
-	textbox.BorderSizePixel = 0
-	textbox.AutoButtonColor = false
-	textbox.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	textbox.Text = ''
-	textbox.Parent = children
-	local title = Instance.new('TextLabel')
-	title.Size = UDim2.new(1, -30, 0, 20)
-	title.Position = UDim2.fromOffset(15, 3)
-	title.BackgroundTransparency = 1
-	title.Text = optionsettings.Title or 'Default Name'
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.TextColor3 = Pallet.Text
-	title.TextSize = 12
-	title.FontFace = Pallet.Font
-	title.Parent = textbox
-	local bkg = Instance.new('Frame')
-	bkg.Name = 'BKG'
-	bkg.Size = UDim2.new(1, -20, 0, 29)
-	bkg.Position = UDim2.fromOffset(10, 23)
-	bkg.BackgroundColor3 = ColorLight(Pallet.ModuleLight, 0.02)
-	bkg.Parent = textbox
+	local textbox = Make('TextButton', {
+		Name = (optionsettings.Title or 'Default Name')..'TextBox',
+		Size = UDim2.new(1, 0, 0, 58),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Visible = optionsettings.Visible == nil or optionsettings.Visible,
+		Text = '',
+		Parent = children
+	})
+	local title = Make('TextLabel', {
+		Size = UDim2.new(1, -30, 0, 20),
+		Position = UDim2.fromOffset(15, 3),
+		BackgroundTransparency = 1,
+		Text = optionsettings.Title or 'Default Name',
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Pallet.Text,
+		TextSize = 12,
+		FontFace = Pallet.Font,
+		Parent = textbox
+	})
+	local bkg = Make('Frame', {
+		Name = 'BKG',
+		Size = UDim2.new(1, -20, 0, 29),
+		Position = UDim2.fromOffset(10, 23),
+		BackgroundColor3 = ColorLight(Pallet.ModuleLight, 0.02),
+		Parent = textbox
+	})
 	MakeCorner(bkg, UDim.new(0, 4))
-	local box = Instance.new('TextBox')
-	box.Size = UDim2.new(1, -8, 1, 0)
-	box.Position = UDim2.fromOffset(8, 0)
-	box.BackgroundTransparency = 1
-	box.Text = optionsettings.Default or ''
-	box.PlaceholderText = optionsettings.Placeholder or 'Click to set'
-	box.TextXAlignment = Enum.TextXAlignment.Left
-	box.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	box.PlaceholderColor3 = ColorDark(Pallet.Text, 0.31)
-	box.TextSize = 12
-	box.FontFace = Pallet.Font
-	box.ClearTextOnFocus = false
-	box.Parent = bkg
+	local box = Make('TextBox', {
+		Size = UDim2.new(1, -8, 1, 0),
+		Position = UDim2.fromOffset(8, 0),
+		BackgroundTransparency = 1,
+		Text = optionsettings.Default or '',
+		PlaceholderText = optionsettings.Placeholder or 'Click to set',
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		PlaceholderColor3 = ColorDark(Pallet.Text, 0.31),
+		TextSize = 12,
+		FontFace = Pallet.Font,
+		ClearTextOnFocus = false,
+		Parent = bkg
+	})
 
 	function optionapi:SetValue(val, enter, input)
 		self.Value = val
@@ -854,23 +881,25 @@ end
 -- Component: Divider
 local function CreateDivider(children, text)
 	local Pallet = VapeLibrary.Internal.Pallet
-	local divider = Instance.new('Frame')
-	divider.Name = 'Divider'
-	divider.Size = UDim2.new(1, 0, 0, 1)
-	divider.BackgroundColor3 = ColorLight(Pallet.Main, 0.02)
-	divider.BorderSizePixel = 0
-	divider.Parent = children
+	local divider = Make('Frame', {
+		Name = 'Divider',
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = ColorLight(Pallet.Main, 0.02),
+		BorderSizePixel = 0,
+		Parent = children
+	})
 	if text then
-		local label = Instance.new('TextLabel')
-		label.Name = 'DividerLabel'
-		label.Size = UDim2.fromOffset(218, 27)
-		label.BackgroundTransparency = 1
-		label.Text = '     '..text:upper()
-		label.TextXAlignment = Enum.TextXAlignment.Left
-		label.TextColor3 = ColorDark(Pallet.Text, 0.43)
-		label.TextSize = 9
-		label.FontFace = Pallet.Font
-		label.Parent = children
+		local label = Make('TextLabel', {
+			Name = 'DividerLabel',
+			Size = UDim2.fromOffset(218, 27),
+			BackgroundTransparency = 1,
+			Text = '     '..text:upper(),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = ColorDark(Pallet.Text, 0.43),
+			TextSize = 9,
+			FontFace = Pallet.Font,
+			Parent = children
+		})
 		divider.Position = UDim2.fromOffset(0, 26)
 		divider.Parent = label
 	end
@@ -883,28 +912,30 @@ local function CreateLabel(optionsettings, children, api)
 		Index = 0
 	}
 
-	local frame = Instance.new('Frame')
-	frame.Name = (optionsettings.Title or 'Default Name')..'Label'
-	frame.Size = UDim2.new(1, 0, 0, 32)
-	frame.BackgroundColor3 = Pallet.Module
-	frame.BorderSizePixel = 0
-	frame.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	frame.Parent = children
+	local frame = Make('Frame', {
+		Name = (optionsettings.Title or 'Default Name')..'Label',
+		Size = UDim2.new(1, 0, 0, 32),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		Visible = optionsettings.Visible == nil or optionsettings.Visible,
+		Parent = children
+	})
 
-	local textLabel = Instance.new('TextLabel')
-	textLabel.Name = 'Text'
-	textLabel.Size = UDim2.new(1, -16, 1, -6)
-	textLabel.Position = UDim2.fromOffset(10, 3)
-	textLabel.BackgroundTransparency = 1
-	textLabel.TextXAlignment = Enum.TextXAlignment.Left
-	textLabel.TextYAlignment = Enum.TextYAlignment.Top
-	textLabel.TextColor3 = Pallet.Text
-	textLabel.TextSize = 12
-	textLabel.FontFace = Pallet.Font
-	textLabel.RichText = optionsettings.RichText or false
-	textLabel.TextWrapped = true
-	textLabel.Text = optionapi.Name
-	textLabel.Parent = frame
+	local textLabel = Make('TextLabel', {
+		Name = 'Text',
+		Size = UDim2.new(1, -16, 1, -6),
+		Position = UDim2.fromOffset(10, 3),
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextColor3 = Pallet.Text,
+		TextSize = 12,
+		FontFace = Pallet.Font,
+		RichText = optionsettings.RichText or false,
+		TextWrapped = true,
+		Text = optionapi.Name,
+		Parent = frame
+	})
 
 	local function updateSize()
 		local textSize = GetTextSize(textLabel.Text, textLabel.FontFace, textLabel.AbsoluteSize.X, textLabel.TextSize)
@@ -934,59 +965,64 @@ local function CreateKeybind(optionsettings, children, api)
 		Index = getTableSize(api.Options)
 	}
 
-	local keybind = Instance.new('TextButton')
-	keybind.Name = (optionsettings.Title or 'Default Name')..'Keybind'
-	keybind.Size = UDim2.new(1, 0, 0, 34)
-	keybind.BackgroundColor3 = Pallet.Module
-	keybind.BorderSizePixel = 0
-	keybind.AutoButtonColor = false
-	keybind.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	keybind.Text = ''
-	keybind.Parent = children
+	local keybind = Make('TextButton', {
+		Name = (optionsettings.Title or 'Default Name')..'Keybind',
+		Size = UDim2.new(1, 0, 0, 34),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Visible = optionsettings.Visible == nil or optionsettings.Visible,
+		Text = '',
+		Parent = children
+	})
 
-	local titleLabel = Instance.new('TextLabel')
-	titleLabel.Name = 'Title'
-	titleLabel.Size = UDim2.new(1, -80, 0, 34)
-	titleLabel.Position = UDim2.fromOffset(10, 0)
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = (optionsettings.Title or 'Default Name')
-	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-	titleLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	titleLabel.TextSize = 14
-	titleLabel.FontFace = Pallet.Font
-	titleLabel.Parent = keybind
+	local titleLabel = Make('TextLabel', {
+		Name = 'Title',
+		Size = UDim2.new(1, -80, 0, 34),
+		Position = UDim2.fromOffset(10, 0),
+		BackgroundTransparency = 1,
+		Text = (optionsettings.Title or 'Default Name'),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 14,
+		FontFace = Pallet.Font,
+		Parent = keybind
+	})
 
-	local bindBox = Instance.new('TextButton')
-	bindBox.Name = 'BindBox'
-	bindBox.Size = UDim2.fromOffset(24, 24)
-	bindBox.Position = UDim2.new(1, -34, 0, 5)
-	bindBox.BackgroundColor3 = ColorLight(Pallet.Main, 0.05)
-	bindBox.Text = ''
-	bindBox.AutoButtonColor = false
-	bindBox.Parent = keybind
+	local bindBox = Make('TextButton', {
+		Name = 'BindBox',
+		Size = UDim2.fromOffset(24, 24),
+		Position = UDim2.new(1, -34, 0, 5),
+		BackgroundColor3 = ColorLight(Pallet.Main, 0.05),
+		Text = '',
+		AutoButtonColor = false,
+		Parent = keybind
+	})
 	MakeCorner(bindBox, UDim.new(0, 4))
 
-	local bindIcon = Instance.new('ImageLabel')
-	bindIcon.Name = 'BindIcon'
-	bindIcon.Size = UDim2.fromOffset(12, 12)
-	bindIcon.Position = UDim2.new(0.5, -6, 0.5, -6)
-	bindIcon.BackgroundTransparency = 1
-	bindIcon.Image = GetAsset('bind.png')
-	bindIcon.ImageColor3 = ColorDark(Pallet.Text, 0.16)
-	bindIcon.Visible = false
-	bindIcon.Parent = bindBox
+	local bindIcon = Make('ImageLabel', {
+		Name = 'BindIcon',
+		Size = UDim2.fromOffset(12, 12),
+		Position = UDim2.new(0.5, -6, 0.5, -6),
+		BackgroundTransparency = 1,
+		Image = GetAsset('bind.png'),
+		ImageColor3 = ColorDark(Pallet.Text, 0.16),
+		Visible = false,
+		Parent = bindBox
+	})
 
-	local bindLabel = Instance.new('TextLabel')
-	bindLabel.Name = 'BindLabel'
-	bindLabel.Size = UDim2.new(1, -8, 1, 0)
-	bindLabel.Position = UDim2.fromOffset(4, 0)
-	bindLabel.BackgroundTransparency = 1
-	bindLabel.Text = optionapi.Value and optionapi.Value.Name or 'None'
-	bindLabel.TextXAlignment = Enum.TextXAlignment.Center
-	bindLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	bindLabel.TextSize = 12
-	bindLabel.FontFace = Pallet.Font
-	bindLabel.Parent = bindBox
+	local bindLabel = Make('TextLabel', {
+		Name = 'BindLabel',
+		Size = UDim2.new(1, -8, 1, 0),
+		Position = UDim2.fromOffset(4, 0),
+		BackgroundTransparency = 1,
+		Text = optionapi.Value and optionapi.Value.Name or 'None',
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 12,
+		FontFace = Pallet.Font,
+		Parent = bindBox
+	})
 
 	local listening = false
 	local keybindConnection
@@ -1147,58 +1183,65 @@ function TabClass:CreateModule(settings)
 	}
 
 	local hovered = false
-	local modulebutton = Instance.new('TextButton')
-	modulebutton.Name = settings.Name
-	modulebutton.Size = UDim2.new(1, 0, 0, 40)
-	modulebutton.BackgroundColor3 = Pallet.Module
-	modulebutton.BorderSizePixel = 0
-	modulebutton.AutoButtonColor = false
-	modulebutton.Text = '     '..settings.Name
-	modulebutton.TextXAlignment = Enum.TextXAlignment.Left
-	modulebutton.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	modulebutton.TextSize = 14
-	modulebutton.FontFace = Pallet.Font
-	modulebutton.Parent = parentTab.Children
-	local gradient = Instance.new('UIGradient')
-	gradient.Rotation = 90
-	gradient.Enabled = false
-	gradient.Parent = modulebutton
-	local modulechildren = Instance.new('Frame')
-	local dotsbutton = Instance.new('TextButton')
-	dotsbutton.Name = 'Dots'
-	dotsbutton.Size = UDim2.fromOffset(25, 40)
-	dotsbutton.Position = UDim2.new(1, -25, 0, 0)
-	dotsbutton.BackgroundTransparency = 1
-	dotsbutton.Text = ''
-	dotsbutton.Parent = modulebutton
-	local dots = Instance.new('ImageLabel')
-	dots.Name = 'Dots'
-	dots.Size = UDim2.fromOffset(3, 16)
-	dots.Position = UDim2.fromOffset(4, 12)
-	dots.BackgroundTransparency = 1
-	dots.Image = GetAsset('dots.png')
-	dots.ImageColor3 = ColorLight(Pallet.Main, 0.37)
-	dots.Parent = dotsbutton
-	modulechildren.Name = settings.Name..'Children'
-	modulechildren.Size = UDim2.new(1, 0, 0, 0)
-	modulechildren.BackgroundColor3 = ColorDark(Pallet.Module, 0.02)
-	modulechildren.BorderSizePixel = 0
-	modulechildren.Visible = false
-	modulechildren.Parent = parentTab.Children
+	local modulebutton = Make('TextButton', {
+		Name = settings.Name,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundColor3 = Pallet.Module,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = '     '..settings.Name,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 14,
+		FontFace = Pallet.Font,
+		Parent = parentTab.Children
+	})
+	local gradient = Make('UIGradient', {
+		Rotation = 90,
+		Enabled = false,
+		Parent = modulebutton
+	})
+	local modulechildren = Make('Frame', {
+		Name = settings.Name..'Children',
+		Size = UDim2.new(1, 0, 0, 0),
+		BackgroundColor3 = ColorDark(Pallet.Module, 0.02),
+		BorderSizePixel = 0,
+		Visible = false,
+		Parent = parentTab.Children
+	})
 	moduleapi.Children = modulechildren
-	local windowlist = Instance.new('UIListLayout')
-	windowlist.SortOrder = Enum.SortOrder.LayoutOrder
-	windowlist.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	windowlist.Parent = modulechildren
-	local dividerFrame = Instance.new('Frame')
-	dividerFrame.Name = 'Divider'
-	dividerFrame.Size = UDim2.new(1, 0, 0, 1)
-	dividerFrame.Position = UDim2.new(0, 0, 1, -1)
-	dividerFrame.BackgroundColor3 = Color3.new(0.19, 0.19, 0.19)
-	dividerFrame.BackgroundTransparency = 0.52
-	dividerFrame.BorderSizePixel = 0
-	dividerFrame.Visible = false
-	dividerFrame.Parent = modulebutton
+	local dotsbutton = Make('TextButton', {
+		Name = 'Dots',
+		Size = UDim2.fromOffset(25, 40),
+		Position = UDim2.new(1, -25, 0, 0),
+		BackgroundTransparency = 1,
+		Text = '',
+		Parent = modulebutton
+	})
+	local dots = Make('ImageLabel', {
+		Name = 'Dots',
+		Size = UDim2.fromOffset(3, 16),
+		Position = UDim2.fromOffset(4, 12),
+		BackgroundTransparency = 1,
+		Image = GetAsset('dots.png'),
+		ImageColor3 = ColorLight(Pallet.Main, 0.37),
+		Parent = dotsbutton
+	})
+	local windowlist = Make('UIListLayout', {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Parent = modulechildren
+	})
+	local dividerFrame = Make('Frame', {
+		Name = 'Divider',
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.new(0, 0, 1, -1),
+		BackgroundColor3 = Color3.new(0.19, 0.19, 0.19),
+		BackgroundTransparency = 0.52,
+		BorderSizePixel = 0,
+		Visible = false,
+		Parent = modulebutton
+	})
 	settings.Function = settings.Function or function() end
 	addMaid(moduleapi)
 
@@ -1299,76 +1342,84 @@ function WindowClass:CreateTab(settings)
 		Name = settings.Name
 	}
 
-	local window = Instance.new('TextButton')
-	window.Name = settings.Name..'Category'
-	window.Size = UDim2.fromOffset(220, 41)
-	window.Position = UDim2.fromOffset(236, 60)
-	window.BackgroundColor3 = Pallet.Main
-	window.AutoButtonColor = false
-	window.Visible = false
-	window.Text = ''
-	window.Parent = VapeLibrary.Internal.ClickGui
+	local window = Make('TextButton', {
+		Name = settings.Name..'Category',
+		Size = UDim2.fromOffset(220, 41),
+		Position = UDim2.fromOffset(236, 60),
+		BackgroundColor3 = Pallet.Main,
+		AutoButtonColor = false,
+		Visible = false,
+		Text = '',
+		Parent = VapeLibrary.Internal.ClickGui
+	})
 	MakeBlur(window)
 	MakeCorner(window)
 	MakeDraggable(window)
-	local icon = Instance.new('ImageLabel')
-	icon.Name = 'Icon'
-	icon.Size = settings.Size or UDim2.fromOffset(16, 16)
-	icon.Position = UDim2.fromOffset(12, (icon.Size.X.Offset > 20 and 14 or 13))
-	icon.BackgroundTransparency = 1
-	icon.Image = GetAsset(settings.Icon or 'combaticon.png')
-	icon.ImageColor3 = Pallet.Text
-	icon.Parent = window
-	local title = Instance.new('TextLabel')
-	title.Name = 'Title'
-	title.Size = UDim2.new(1, -((settings.Size and settings.Size.X.Offset or 16) > 18 and 40 or 33), 0, 41)
-	title.Position = UDim2.fromOffset(math.abs(title.Size.X.Offset), 0)
-	title.BackgroundTransparency = 1
-	title.Text = settings.Name
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.TextColor3 = Pallet.Text
-	title.TextSize = 13
-	title.FontFace = Pallet.Font
-	title.Parent = window
-	local arrowbutton = Instance.new('TextButton')
-	arrowbutton.Name = 'Arrow'
-	arrowbutton.Size = UDim2.fromOffset(40, 40)
-	arrowbutton.Position = UDim2.new(1, -40, 0, 0)
-	arrowbutton.BackgroundTransparency = 1
-	arrowbutton.Text = ''
-	arrowbutton.Parent = window
-	local arrow = Instance.new('ImageLabel')
-	arrow.Name = 'Arrow'
-	arrow.Size = UDim2.fromOffset(9, 4)
-	arrow.Position = UDim2.fromOffset(20, 18)
-	arrow.BackgroundTransparency = 1
-	arrow.Image = GetAsset('expandup.png')
-	arrow.ImageColor3 = Color3.fromRGB(140, 140, 140)
-	arrow.Rotation = 180
-	arrow.Parent = arrowbutton
-	local children = Instance.new('ScrollingFrame')
-	children.Name = 'Children'
-	children.Size = UDim2.new(1, 0, 1, -41)
-	children.Position = UDim2.fromOffset(0, 37)
-	children.BackgroundTransparency = 1
-	children.BorderSizePixel = 0
-	children.Visible = false
-	children.ScrollBarThickness = 2
-	children.ScrollBarImageTransparency = 0.75
-	children.CanvasSize = UDim2.new()
-	children.Parent = window
-	local dividerFrame = Instance.new('Frame')
-	dividerFrame.Name = 'Divider'
-	dividerFrame.Size = UDim2.new(1, 0, 0, 1)
-	dividerFrame.Position = UDim2.fromOffset(0, 37)
-	dividerFrame.BackgroundColor3 = Color3.new(1, 1, 1)
-	dividerFrame.BackgroundTransparency = 0.928
-	dividerFrame.BorderSizePixel = 0
-	dividerFrame.Parent = window
-	local windowlist = Instance.new('UIListLayout')
-	windowlist.SortOrder = Enum.SortOrder.LayoutOrder
-	windowlist.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	windowlist.Parent = children
+	local icon = Make('ImageLabel', {
+		Name = 'Icon',
+		Size = settings.Size or UDim2.fromOffset(16, 16),
+		Position = UDim2.fromOffset(12, ((settings.Size or UDim2.fromOffset(16, 16)).X.Offset > 20 and 14 or 13)),
+		BackgroundTransparency = 1,
+		Image = GetAsset(settings.Icon or 'combaticon.png'),
+		ImageColor3 = Pallet.Text,
+		Parent = window
+	})
+	local title = Make('TextLabel', {
+		Name = 'Title',
+		Size = UDim2.new(1, -((settings.Size and settings.Size.X.Offset or 16) > 18 and 40 or 33), 0, 41),
+		Position = UDim2.fromOffset(math.abs(((settings.Size and settings.Size.X.Offset or 16) > 18 and 40 or 33)), 0),
+		BackgroundTransparency = 1,
+		Text = settings.Name,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Pallet.Text,
+		TextSize = 13,
+		FontFace = Pallet.Font,
+		Parent = window
+	})
+	local arrowbutton = Make('TextButton', {
+		Name = 'Arrow',
+		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.new(1, -40, 0, 0),
+		BackgroundTransparency = 1,
+		Text = '',
+		Parent = window
+	})
+	local arrow = Make('ImageLabel', {
+		Name = 'Arrow',
+		Size = UDim2.fromOffset(9, 4),
+		Position = UDim2.fromOffset(20, 18),
+		BackgroundTransparency = 1,
+		Image = GetAsset('expandup.png'),
+		ImageColor3 = Color3.fromRGB(140, 140, 140),
+		Rotation = 180,
+		Parent = arrowbutton
+	})
+	local children = Make('ScrollingFrame', {
+		Name = 'Children',
+		Size = UDim2.new(1, 0, 1, -41),
+		Position = UDim2.fromOffset(0, 37),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Visible = false,
+		ScrollBarThickness = 2,
+		ScrollBarImageTransparency = 0.75,
+		CanvasSize = UDim2.new(),
+		Parent = window
+	})
+	local dividerFrame = Make('Frame', {
+		Name = 'Divider',
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.fromOffset(0, 37),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.928,
+		BorderSizePixel = 0,
+		Parent = window
+	})
+	local windowlist = Make('UIListLayout', {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Parent = children
+	})
 	categoryapi.Children = children
 	categoryapi.Object = window
 
@@ -1418,37 +1469,40 @@ function WindowClass:CreateTab(settings)
 	end)
 
 	-- Create button in main window
-	local categoryButton = Instance.new('TextButton')
-	categoryButton.Name = settings.Name
-	categoryButton.Size = UDim2.new(1, 0, 0, 40)
-	categoryButton.BackgroundColor3 = Pallet.Main
-	categoryButton.BorderSizePixel = 0
-	categoryButton.AutoButtonColor = false
-	categoryButton.Text = (settings.Icon and string.rep(" ", 12) or "    ")..settings.Name
-	categoryButton.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	categoryButton.TextSize = 14
-	categoryButton.TextXAlignment = Enum.TextXAlignment.Left
-	categoryButton.FontFace = Pallet.Font
-	categoryButton.Parent = VapeLibrary.Internal.MainChildren
+	local categoryButton = Make('TextButton', {
+		Name = settings.Name,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundColor3 = Pallet.Main,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = (settings.Icon and string.rep(" ", 12) or "    ")..settings.Name,
+		TextColor3 = ColorDark(Pallet.Text, 0.16),
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		FontFace = Pallet.Font,
+		Parent = VapeLibrary.Internal.MainChildren
+	})
 	local catIcon
 	if settings.Icon then
-		catIcon = Instance.new('ImageLabel')
-		catIcon.Name = 'Icon'
-		catIcon.Size = settings.Size or UDim2.fromOffset(16, 16)
-		catIcon.Position = UDim2.fromOffset(13, 13)
-		catIcon.BackgroundTransparency = 1
-		catIcon.Image = GetAsset(settings.Icon)
-		catIcon.ImageColor3 = ColorDark(Pallet.Text, 0.16)
-		catIcon.Parent = categoryButton
+		catIcon = Make('ImageLabel', {
+			Name = 'Icon',
+			Size = settings.Size or UDim2.fromOffset(16, 16),
+			Position = UDim2.fromOffset(13, 13),
+			BackgroundTransparency = 1,
+			Image = GetAsset(settings.Icon),
+			ImageColor3 = ColorDark(Pallet.Text, 0.16),
+			Parent = categoryButton
+		})
 	end
-	local catArrow = Instance.new('ImageLabel')
-	catArrow.Name = 'Arrow'
-	catArrow.Size = UDim2.fromOffset(4, 8)
-	catArrow.Position = UDim2.new(1, -20, 0, 16)
-	catArrow.BackgroundTransparency = 1
-	catArrow.Image = GetAsset('expandright.png')
-	catArrow.ImageColor3 = ColorLight(Pallet.Main, 0.37)
-	catArrow.Parent = categoryButton
+	local catArrow = Make('ImageLabel', {
+		Name = 'Arrow',
+		Size = UDim2.fromOffset(4, 8),
+		Position = UDim2.new(1, -20, 0, 16),
+		BackgroundTransparency = 1,
+		Image = GetAsset('expandright.png'),
+		ImageColor3 = ColorLight(Pallet.Main, 0.37),
+		Parent = categoryButton
+	})
 
 	local categoryButtonApi = {
 		Enabled = false,
@@ -1549,81 +1603,90 @@ function VapeLibrary:CreateWindow(settings)
 	MakeCorner(MainFrame)
 	MakeDraggable(MainFrame)
 
-	local logo = Instance.new('ImageLabel')
-	logo.Name = 'VapeLogo'
-	logo.Size = UDim2.fromOffset(62, 18)
-	logo.Position = UDim2.fromOffset(11, 10)
-	logo.BackgroundTransparency = 1
-	logo.Image = GetAsset('guivape.png')
-	logo.ImageColor3 = select(3, Pallet.Main:ToHSV()) > 0.5 and Pallet.Text or Color3.new(1, 1, 1)
-	logo.Parent = MainFrame
-	local logov4 = Instance.new('ImageLabel')
-	logov4.Name = 'V4Logo'
-	logov4.Size = UDim2.fromOffset(28, 16)
-	logov4.Position = UDim2.new(1, 1, 0, 1)
-	logov4.BackgroundTransparency = 1
-	logov4.Image = GetAsset('guiv4.png')
-	logov4.ImageColor3 = Color3.fromRGB(5, 132, 102)
-	logov4.Parent = logo
+	local logo = Make('ImageLabel', {
+		Name = 'VapeLogo',
+		Size = UDim2.fromOffset(62, 18),
+		Position = UDim2.fromOffset(11, 10),
+		BackgroundTransparency = 1,
+		Image = GetAsset('guivape.png'),
+		ImageColor3 = select(3, Pallet.Main:ToHSV()) > 0.5 and Pallet.Text or Color3.new(1, 1, 1),
+		Parent = MainFrame
+	})
+	local logov4 = Make('ImageLabel', {
+		Name = 'V4Logo',
+		Size = UDim2.fromOffset(28, 16),
+		Position = UDim2.new(1, 1, 0, 1),
+		BackgroundTransparency = 1,
+		Image = GetAsset('guiv4.png'),
+		ImageColor3 = Color3.fromRGB(5, 132, 102),
+		Parent = logo
+	})
 
-	local MainChildren = Instance.new('Frame')
-	MainChildren.Name = 'Children'
-	MainChildren.Size = UDim2.new(1, 0, 1, -33)
-	MainChildren.Position = UDim2.fromOffset(0, 37)
-	MainChildren.BackgroundTransparency = 1
-	MainChildren.BorderSizePixel = 0
-	MainChildren.Parent = MainFrame
+	local MainChildren = Make('Frame', {
+		Name = 'Children',
+		Size = UDim2.new(1, 0, 1, -33),
+		Position = UDim2.fromOffset(0, 37),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Parent = MainFrame
+	})
 	VapeLibrary.Internal.MainChildren = MainChildren
-	local MainList = Instance.new('UIListLayout')
-	MainList.SortOrder = Enum.SortOrder.LayoutOrder
-	MainList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	MainList.Parent = MainChildren
+	local MainList = Make('UIListLayout', {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Parent = MainChildren
+	})
 
 	if settings.MakeSettings ~= false then
-		local settingsbutton = Instance.new('TextButton')
-		settingsbutton.Name = 'Settings'
-		settingsbutton.Size = UDim2.fromOffset(40, 40)
-		settingsbutton.Position = UDim2.new(1, -40, 0, 0)
-		settingsbutton.BackgroundTransparency = 1
-		settingsbutton.Text = ''
-		settingsbutton.Parent = MainFrame
-		local settingsicon = Instance.new('ImageLabel')
-		settingsicon.Size = UDim2.fromOffset(14, 14)
-		settingsicon.Position = UDim2.fromOffset(15, 12)
-		settingsicon.BackgroundTransparency = 1
-		settingsicon.Image = GetAsset('guisettings.png')
-		settingsicon.ImageColor3 = ColorLight(Pallet.Main, 0.37)
-		settingsicon.Parent = settingsbutton
+		local settingsbutton = Make('TextButton', {
+			Name = 'Settings',
+			Size = UDim2.fromOffset(40, 40),
+			Position = UDim2.new(1, -40, 0, 0),
+			BackgroundTransparency = 1,
+			Text = '',
+			Parent = MainFrame
+		})
+		local settingsicon = Make('ImageLabel', {
+			Size = UDim2.fromOffset(14, 14),
+			Position = UDim2.fromOffset(15, 12),
+			BackgroundTransparency = 1,
+			Image = GetAsset('guisettings.png'),
+			ImageColor3 = ColorLight(Pallet.Main, 0.37),
+			Parent = settingsbutton
+		})
 
-		local settingspane = Instance.new('TextButton')
-		settingspane.Size = UDim2.fromScale(1, 1)
-		settingspane.BackgroundColor3 = ColorDark(Pallet.Main, 0.02)
-		settingspane.AutoButtonColor = false
-		settingspane.Visible = false
-		settingspane.Text = ''
-		settingspane.Parent = MainFrame
+		local settingspane = Make('TextButton', {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = ColorDark(Pallet.Main, 0.02),
+			AutoButtonColor = false,
+			Visible = false,
+			Text = '',
+			Parent = MainFrame
+		})
 		MakeCorner(settingspane)
-		local settingsTitle = Instance.new('TextLabel')
-		settingsTitle.Name = 'Title'
-		settingsTitle.Size = UDim2.new(1, -36, 0, 20)
-		settingsTitle.Position = UDim2.fromOffset(36, 11)
-		settingsTitle.BackgroundTransparency = 1
-		settingsTitle.Text = 'Settings'
-		settingsTitle.TextXAlignment = Enum.TextXAlignment.Left
-		settingsTitle.TextColor3 = Pallet.Text
-		settingsTitle.TextSize = 13
-		settingsTitle.FontFace = Pallet.Font
-		settingsTitle.Parent = settingspane
+		local settingsTitle = Make('TextLabel', {
+			Name = 'Title',
+			Size = UDim2.new(1, -36, 0, 20),
+			Position = UDim2.fromOffset(36, 11),
+			BackgroundTransparency = 1,
+			Text = 'Settings',
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = Pallet.Text,
+			TextSize = 13,
+			FontFace = Pallet.Font,
+			Parent = settingspane
+		})
 		local close = addCloseButton(settingspane)
 		close.Position = UDim2.new(1, -32, 0, 8)
-		local back = Instance.new('ImageButton')
-		back.Name = 'Back'
-		back.Size = UDim2.fromOffset(16, 16)
-		back.Position = UDim2.fromOffset(11, 13)
-		back.BackgroundTransparency = 1
-		back.Image = GetAsset('bind.png')
-		back.ImageColor3 = ColorLight(Pallet.Main, 0.37)
-		back.Parent = settingspane
+		local back = Make('ImageButton', {
+			Name = 'Back',
+			Size = UDim2.fromOffset(16, 16),
+			Position = UDim2.fromOffset(11, 13),
+			BackgroundTransparency = 1,
+			Image = GetAsset('bind.png'),
+			ImageColor3 = ColorLight(Pallet.Main, 0.37),
+			Parent = settingspane
+		})
 
 		settingsbutton.MouseEnter:Connect(function()
 			settingsicon.ImageColor3 = Pallet.Text
@@ -1668,7 +1731,6 @@ function VapeLibrary:CreateWindow(settings)
 			end
 		end
 	end)
-
 	return windowApi
 end
 
