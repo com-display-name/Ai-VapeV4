@@ -1,0 +1,41 @@
+--[[
+
+    Little list for each component:
+    Toggle : {
+        Title             : string? = "Default Name",
+        Default           : boolean? = false,
+        Function          : () -> any? = nil
+    }
+    Button : {
+        Title             : string? = "Default Name",
+        Function          : () -> any? = nil
+    }
+    Slider : {
+            Title : string? = "Default Name",
+            Min           : number? = 0,
+            Max           : number? = 10,
+            Default       : number? = 5,
+            Increment     : number? = 1,
+            Prefix        : string? = "",
+            Suffix        : string? = "",
+            Function      : () -> any? = nil
+    }
+    Dropdown : {
+            Title         : string? = "Default Name",
+            AllowMultiple : boolean? = false,
+            AllowNone     : boolean? = false,
+            Options       : {string}? = {"Option 1", "Option 2"},
+            Default       : string | {string}?  = (AllowNone && nil | Options[1]),
+            Function      : () -> any? = nil
+    }
+    TextBox : {
+            Title         : string? = "Defalt Name",
+            Default       : string? = "",
+            Function      : () -> any = nil?  
+    }
+    Label : {
+            Title         : string? = "Default Name",
+            RichText      : boolean? = false
+    }
+
+]]
