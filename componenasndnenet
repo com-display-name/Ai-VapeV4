@@ -37,5 +37,9 @@
             Title         : string? = "Default Name",
             RichText      : boolean? = false
     }
-
+    Keybind : {
+            Title         : string? = "Default Name",
+            Default       : Enum.KeyCode? = nil,
+            Function      : () -> any? = nil
+    }
 ]]
