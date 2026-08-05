@@ -72,6 +72,11 @@ local function GetTextSize(Text, font, MaxWidth, FontSize)
 end
 
 local function GetAsset(IconName)
+	if type(IconName) == "number" then
+		return "rbxassetid://" .. IconName
+	elseif type(IconName) == "string" and string.sub(IconName, 1, 12) == "rbxassetid://" then
+		return IconName
+	end
 	return Assets[IconName] or ""
 end
 
@@ -258,13 +263,13 @@ local function CreateToggle(optionsettings, children, api)
 
 	local hovered = false
 	local toggle = Instance.new('TextButton')
-	toggle.Name = optionsettings.Name..'Toggle'
+	toggle.Name = (optionsettings.Title or 'Default Name')..'Toggle'
 	toggle.Size = UDim2.new(1, 0, 0, 30)
 	toggle.BackgroundColor3 = Pallet.Module
 	toggle.BorderSizePixel = 0
 	toggle.AutoButtonColor = false
 	toggle.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	toggle.Text = '   '..optionsettings.Name
+	toggle.Text = '   '..(optionsettings.Title or 'Default Name')
 	toggle.TextXAlignment = Enum.TextXAlignment.Left
 	toggle.TextColor3 = ColorDark(Pallet.Text, 0.16)
 	toggle.TextSize = 14
@@ -282,7 +287,6 @@ local function CreateToggle(optionsettings, children, api)
 	knob.Position = UDim2.fromOffset(2, 2)
 	knob.BackgroundColor3 = Pallet.Main
 	knob.Parent = knobholder
-	optionsettings.Function = optionsettings.Function or function() end
 	
 	local function _Toggle()
 		optionapi.Enabled = not optionapi.Enabled
@@ -297,7 +301,9 @@ local function CreateToggle(optionsettings, children, api)
 	
 	function optionapi:Toggle()
 		_Toggle()
-		optionsettings.Function(optionapi.Enabled)
+		if optionsettings.Function then
+			optionsettings.Function(optionapi.Enabled)
+		end
 	end
 
 	toggle.MouseEnter:Connect(function()
@@ -324,7 +330,7 @@ local function CreateToggle(optionsettings, children, api)
 		_Toggle()
 	end
 	optionapi.Object = toggle
-	api.Options[optionsettings.Name] = optionapi
+	api.Options[optionsettings.Title or 'Default Name'] = optionapi
 	return optionapi
 end
 
@@ -332,7 +338,7 @@ end
 local function CreateButton(optionsettings, children, api)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local button = Instance.new('TextButton')
-	button.Name = optionsettings.Name..'Button'
+	button.Name = (optionsettings.Title or 'Default Name')..'Button'
 	button.Size = UDim2.new(1, 0, 0, 31)
 	button.BackgroundColor3 = Pallet.Module
 	button.BorderSizePixel = 0
@@ -350,13 +356,12 @@ local function CreateButton(optionsettings, children, api)
 	label.Size = UDim2.new(1, -4, 1, -4)
 	label.Position = UDim2.fromOffset(2, 2)
 	label.BackgroundColor3 = Pallet.Main
-	label.Text = optionsettings.Name
+	label.Text = optionsettings.Title or 'Default Name'
 	label.TextColor3 = ColorDark(Pallet.Text, 0.16)
 	label.TextSize = 14
 	label.FontFace = Pallet.Font
 	label.Parent = bkg
 	MakeCorner(label, UDim.new(0, 4))
-	optionsettings.Function = optionsettings.Function or function() end
 
 	button.MouseEnter:Connect(function()
 		Tween(bkg, Pallet.Tween, {
@@ -368,7 +373,11 @@ local function CreateButton(optionsettings, children, api)
 			BackgroundColor3 = ColorLight(Pallet.Main, 0.05)
 		})
 	end)
-	button.MouseButton1Click:Connect(optionsettings.Function)
+	button.MouseButton1Click:Connect(function()
+		if optionsettings.Function then
+			optionsettings.Function()
+		end
+	end)
 
 	return button
 end
@@ -378,13 +387,13 @@ local function CreateSlider(optionsettings, children, api)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local optionapi = {
 		Type = 'Slider',
-		Value = optionsettings.Default or optionsettings.Min,
-		Max = optionsettings.Max,
+		Value = optionsettings.Default or optionsettings.Min or 0,
+		Max = optionsettings.Max or 10,
 		Index = getTableSize(api.Options)
 	}
 
 	local slider = Instance.new('TextButton')
-	slider.Name = optionsettings.Name..'Slider'
+	slider.Name = (optionsettings.Title or 'Default Name')..'Slider'
 	slider.Size = UDim2.new(1, 0, 0, 50)
 	slider.BackgroundColor3 = Pallet.Module
 	slider.BorderSizePixel = 0
@@ -397,7 +406,7 @@ local function CreateSlider(optionsettings, children, api)
 	title.Size = UDim2.fromOffset(60, 30)
 	title.Position = UDim2.fromOffset(10, 2)
 	title.BackgroundTransparency = 1
-	title.Text = optionsettings.Name
+	title.Text = optionsettings.Title or 'Default Name'
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextColor3 = ColorDark(Pallet.Text, 0.16)
 	title.TextSize = 11
@@ -408,7 +417,7 @@ local function CreateSlider(optionsettings, children, api)
 	valuebutton.Size = UDim2.fromOffset(60, 15)
 	valuebutton.Position = UDim2.new(1, -69, 0, 9)
 	valuebutton.BackgroundTransparency = 1
-	valuebutton.Text = optionapi.Value..(optionsettings.Suffix and ' '..(type(optionsettings.Suffix) == 'function' and optionsettings.Suffix(optionapi.Value) or optionsettings.Suffix) or '')
+	valuebutton.Text = (optionsettings.Prefix or '')..optionapi.Value..(optionsettings.Suffix and ' '..(type(optionsettings.Suffix) == 'function' and optionsettings.Suffix(optionapi.Value) or optionsettings.Suffix) or '')
 	valuebutton.TextXAlignment = Enum.TextXAlignment.Right
 	valuebutton.TextColor3 = ColorDark(Pallet.Text, 0.16)
 	valuebutton.TextSize = 11
@@ -436,7 +445,7 @@ local function CreateSlider(optionsettings, children, api)
 	bkg.Parent = slider
 	local fill = bkg:Clone()
 	fill.Name = 'Fill'
-	fill.Size = UDim2.fromScale(math.clamp((optionapi.Value - optionsettings.Min) / optionsettings.Max, 0.04, 0.96), 1)
+	fill.Size = UDim2.fromScale(math.clamp((optionapi.Value - (optionsettings.Min or 0)) / (optionsettings.Max or 10), 0.04, 0.96), 1)
 	fill.Position = UDim2.new()
 	fill.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value)
 	fill.Parent = bkg
@@ -456,13 +465,15 @@ local function CreateSlider(optionsettings, children, api)
 	knob.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value)
 	knob.Parent = knobholder
 	MakeCorner(knob, UDim.new(1, 0))
-	optionsettings.Function = optionsettings.Function or function() end
-	optionsettings.Decimal = optionsettings.Decimal or 1
+	optionsettings.Increment = optionsettings.Increment or 1
+	optionsettings.Min = optionsettings.Min or 0
+	optionsettings.Max = optionsettings.Max or 10
 	
-	if optionsettings.Decimal ~= 0 then
-		optionsettings.Decimal = 1 / optionsettings.Decimal
+	local incrementValue = optionsettings.Increment
+	if incrementValue ~= 0 then
+		incrementValue = 1 / incrementValue
 	else
-		optionsettings.Decimal = 1
+		incrementValue = 1
 	end
 
 	function optionapi:SetValue(value, pos, final)
@@ -470,10 +481,10 @@ local function CreateSlider(optionsettings, children, api)
 		local check = self.Value ~= value
 		self.Value = value
 		Tween(fill, Pallet.Tween, {
-			Size = UDim2.fromScale(math.clamp(pos or math.clamp(value / optionsettings.Max, 0, 1), 0.04, 0.96), 1)
+			Size = UDim2.fromScale(math.clamp(pos or math.clamp((value - optionsettings.Min) / (optionsettings.Max - optionsettings.Min), 0, 1), 0.04, 0.96), 1)
 		})
-		valuebutton.Text = self.Value..(optionsettings.Suffix and ' '..(type(optionsettings.Suffix) == 'function' and optionsettings.Suffix(self.Value) or optionsettings.Suffix) or '')
-		if check or final then
+		valuebutton.Text = (optionsettings.Prefix or '')..self.Value..(optionsettings.Suffix and ' '..(type(optionsettings.Suffix) == 'function' and optionsettings.Suffix(self.Value) or optionsettings.Suffix) or '')
+		if (check or final) and optionsettings.Function then
 			optionsettings.Function(value, final)
 		end
 	end
@@ -484,14 +495,14 @@ local function CreateSlider(optionsettings, children, api)
 			and (inputObj.Position.Y - slider.AbsolutePosition.Y) > (20 * 1)
 		then
 			local newPosition = math.clamp((inputObj.Position.X - bkg.AbsolutePosition.X) / bkg.AbsoluteSize.X, 0, 1)
-			optionapi:SetValue(math.floor((optionsettings.Min + (optionsettings.Max - optionsettings.Min) * newPosition) * optionsettings.Decimal) / optionsettings.Decimal, newPosition)
+			optionapi:SetValue(math.floor((optionsettings.Min + (optionsettings.Max - optionsettings.Min) * newPosition) * incrementValue) / incrementValue, newPosition)
 			local lastValue = optionapi.Value
 			local lastPosition = newPosition
 
 			local changed = UserInputService.InputChanged:Connect(function(input)
 				if input.UserInputType == (inputObj.UserInputType == Enum.UserInputType.MouseButton1 and Enum.UserInputType.MouseMovement or Enum.UserInputType.Touch) then
 					local newPosition = math.clamp((input.Position.X - bkg.AbsolutePosition.X) / bkg.AbsoluteSize.X, 0, 1)
-					optionapi:SetValue(math.floor((optionsettings.Min + (optionsettings.Max - optionsettings.Min) * newPosition) * optionsettings.Decimal) / optionsettings.Decimal, newPosition)
+					optionapi:SetValue(math.floor((optionsettings.Min + (optionsettings.Max - optionsettings.Min) * newPosition) * incrementValue) / incrementValue, newPosition)
 					lastValue = optionapi.Value
 					lastPosition = newPosition
 				end
@@ -532,32 +543,46 @@ local function CreateSlider(optionsettings, children, api)
 	end)
 
 	optionapi.Object = slider
-	api.Options[optionsettings.Name] = optionapi
+	api.Options[optionsettings.Title or 'Default Name'] = optionapi
 	return optionapi
 end
 
 -- Component: Dropdown
 local function CreateDropdown(optionsettings, children, api)
 	local Pallet = VapeLibrary.Internal.Pallet
+	local optionsList = optionsettings.Options or {"Option 1", "Option 2"}
 	local optionapi = {
 		Type = 'Dropdown',
-		Value = optionsettings.List[1] or 'None',
+		Value = optionsettings.AllowMultiple and {} or (optionsettings.Default or optionsList[1] or 'None'),
 		Index = getTableSize(api.Options)
 	}
 
 	local dropdown = Instance.new('TextButton')
-	dropdown.Name = optionsettings.Name..'Dropdown'
-	dropdown.Size = UDim2.new(1, 0, 0, 40)
+	dropdown.Name = (optionsettings.Title or 'Default Name')..'Dropdown'
+	dropdown.Size = UDim2.new(1, 0, 0, 54)
 	dropdown.BackgroundColor3 = Pallet.Module
 	dropdown.BorderSizePixel = 0
 	dropdown.AutoButtonColor = false
 	dropdown.Visible = optionsettings.Visible == nil or optionsettings.Visible
 	dropdown.Text = ''
 	dropdown.Parent = children
+
+	local titleLabel = Instance.new('TextLabel')
+	titleLabel.Name = 'Title'
+	titleLabel.Size = UDim2.new(1, -20, 0, 20)
+	titleLabel.Position = UDim2.fromOffset(10, 2)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = (optionsettings.Title or 'Default Name')
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
+	titleLabel.TextSize = 12
+	titleLabel.FontFace = Pallet.Font
+	titleLabel.Parent = dropdown
+
 	local bkg = Instance.new('Frame')
 	bkg.Name = 'BKG'
-	bkg.Size = UDim2.new(1, -20, 1, -9)
-	bkg.Position = UDim2.fromOffset(10, 4)
+	bkg.Size = UDim2.new(1, -20, 0, 26)
+	bkg.Position = UDim2.fromOffset(10, 24)
 	bkg.BackgroundColor3 = ColorLight(Pallet.Main, 0.034)
 	bkg.Parent = dropdown
 	MakeCorner(bkg, UDim.new(0, 6))
@@ -569,86 +594,173 @@ local function CreateDropdown(optionsettings, children, api)
 	button.AutoButtonColor = false
 	button.Text = ''
 	button.Parent = bkg
-	local title = Instance.new('TextLabel')
-	title.Name = 'Title'
-	title.Size = UDim2.new(1, 0, 0, 29)
-	title.BackgroundTransparency = 1
-	title.Text = '        '..optionsettings.Name..' - '..optionapi.Value
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.TextColor3 = ColorDark(Pallet.Text, 0.16)
-	title.TextSize = 13
-	title.TextTruncate = Enum.TextTruncate.AtEnd
-	title.FontFace = Pallet.Font
-	title.Parent = button
+	local displayLabel = Instance.new('TextLabel')
+	displayLabel.Name = 'Display'
+	displayLabel.Size = UDim2.new(1, -24, 1, 0)
+	displayLabel.Position = UDim2.fromOffset(8, 0)
+	displayLabel.BackgroundTransparency = 1
+	local displayValue
+	if optionsettings.AllowMultiple then
+		displayValue = #optionapi.Value > 0 and table.concat(optionapi.Value, ", ") or "None"
+	else
+		displayValue = optionapi.Value
+	end
+	displayLabel.Text = displayValue
+	displayLabel.TextXAlignment = Enum.TextXAlignment.Left
+	displayLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
+	displayLabel.TextSize = 12
+	displayLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	displayLabel.FontFace = Pallet.Font
+	displayLabel.Parent = button
 	MakeCorner(button, UDim.new(0, 6))
 	local arrow = Instance.new('ImageLabel')
 	arrow.Name = 'Arrow'
 	arrow.Size = UDim2.fromOffset(4, 8)
-	arrow.Position = UDim2.new(1, -17, 0, 11)
+	arrow.Position = UDim2.new(1, -14, 0, 9)
 	arrow.BackgroundTransparency = 1
 	arrow.Image = GetAsset('expandright.png')
 	arrow.ImageColor3 = Color3.fromRGB(140, 140, 140)
 	arrow.Rotation = 90
 	arrow.Parent = button
-	optionsettings.Function = optionsettings.Function or function() end
 	local dropdownchildren
+	local optionButtons = {}
+	local outsideClickConnection
 
-	function optionapi:SetValue(val, mouse)
-		self.Value = table.find(optionsettings.List, val) and val or optionsettings.List[1] or 'None'
-		title.Text = '        '..optionsettings.Name..' - '..self.Value
+	local function isOptionSelected(val)
+		if optionsettings.AllowMultiple then
+			return table.find(optionapi.Value, val) ~= nil
+		else
+			return val == optionapi.Value
+		end
+	end
+
+	local function updateHighlights()
+		for val, btn in optionButtons do
+			local selected = isOptionSelected(val)
+			Tween(btn, Pallet.Tween, {
+				BackgroundColor3 = selected and Pallet.ModuleLight or Pallet.Main
+			})
+		end
+	end
+
+	local function closeDropdown()
 		if dropdownchildren then
 			arrow.Rotation = 90
 			dropdownchildren:Destroy()
 			dropdownchildren = nil
-			dropdown.Size = UDim2.new(1, 0, 0, 40)
+			optionButtons = {}
+			dropdown.Size = UDim2.new(1, 0, 0, 54)
 		end
-		optionsettings.Function(self.Value, mouse)
+		if outsideClickConnection then
+			outsideClickConnection:Disconnect()
+			outsideClickConnection = nil
+		end
+	end
+
+	local function openDropdown()
+		arrow.Rotation = 270
+		dropdown.Size = UDim2.new(1, 0, 0, 54 + (#optionsList) * 26)
+		dropdownchildren = Instance.new('Frame')
+		dropdownchildren.Name = 'Children'
+		dropdownchildren.Size = UDim2.new(1, 0, 0, (#optionsList) * 26)
+		dropdownchildren.Position = UDim2.fromOffset(0, 51)
+		dropdownchildren.BackgroundTransparency = 1
+		dropdownchildren.Parent = dropdown
+		local ind = 0
+		for _, v in optionsList do
+			local selected = isOptionSelected(v)
+			local dropdownoption = Instance.new('TextButton')
+			dropdownoption.Name = v..'Option'
+			dropdownoption.Size = UDim2.new(1, 0, 0, 26)
+			dropdownoption.Position = UDim2.fromOffset(0, ind * 26)
+			dropdownoption.BackgroundColor3 = selected and Pallet.ModuleLight or Pallet.Main
+			dropdownoption.BorderSizePixel = 0
+			dropdownoption.AutoButtonColor = false
+			dropdownoption.Text = '        '..v
+			dropdownoption.TextXAlignment = Enum.TextXAlignment.Left
+			dropdownoption.TextColor3 = ColorDark(Pallet.Text, 0.16)
+			dropdownoption.TextSize = 13
+			dropdownoption.TextTruncate = Enum.TextTruncate.AtEnd
+			dropdownoption.FontFace = Pallet.Font
+			dropdownoption.Parent = dropdownchildren
+			optionButtons[v] = dropdownoption
+			dropdownoption.MouseEnter:Connect(function()
+				Tween(dropdownoption, Pallet.Tween, {
+					BackgroundColor3 = ColorLight(Pallet.Main, 0.02)
+				})
+			end)
+			dropdownoption.MouseLeave:Connect(function()
+				Tween(dropdownoption, Pallet.Tween, {
+					BackgroundColor3 = isOptionSelected(v) and Pallet.ModuleLight or Pallet.Main
+				})
+			end)
+			dropdownoption.MouseButton1Click:Connect(function()
+				optionapi:SetValue(v, true)
+			end)
+			ind += 1
+		end
+
+		if optionsettings.AllowMultiple then
+			if outsideClickConnection then
+				outsideClickConnection:Disconnect()
+			end
+			outsideClickConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+				if gameProcessed then return end
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					local absPos = dropdown.AbsolutePosition
+					local absSize = dropdown.AbsoluteSize
+					local clickX = input.Position.X
+					local clickY = input.Position.Y
+					if clickX < absPos.X or clickX > absPos.X + absSize.X or clickY < absPos.Y or clickY > absPos.Y + absSize.Y then
+						closeDropdown()
+					end
+				end
+			end)
+		end
+	end
+
+	local function updateTitle()
+		local displayValue
+		if optionsettings.AllowMultiple then
+			displayValue = #optionapi.Value > 0 and table.concat(optionapi.Value, ", ") or "None"
+		else
+			displayValue = optionapi.Value
+		end
+		displayLabel.Text = displayValue
+	end
+
+	function optionapi:SetValue(val, mouse)
+		if optionsettings.AllowMultiple then
+			if type(val) == "table" then
+				self.Value = val
+			else
+				local found = table.find(optionsList, val)
+				if found then
+					local existing = table.find(self.Value, val)
+					if existing then
+						table.remove(self.Value, existing)
+					else
+						table.insert(self.Value, val)
+					end
+				end
+			end
+			updateTitle()
+			updateHighlights()
+		else
+			self.Value = table.find(optionsList, val) and val or optionsList[1] or 'None'
+			updateTitle()
+			closeDropdown()
+		end
+		if optionsettings.Function then
+			optionsettings.Function(self.Value, mouse)
+		end
 	end
 
 	button.MouseButton1Click:Connect(function()
-		if not dropdownchildren then
-			arrow.Rotation = 270
-			dropdown.Size = UDim2.new(1, 0, 0, 40 + (#optionsettings.List - 1) * 26)
-			dropdownchildren = Instance.new('Frame')
-			dropdownchildren.Name = 'Children'
-			dropdownchildren.Size = UDim2.new(1, 0, 0, (#optionsettings.List - 1) * 26)
-			dropdownchildren.Position = UDim2.fromOffset(0, 27)
-			dropdownchildren.BackgroundTransparency = 1
-			dropdownchildren.Parent = button
-			local ind = 0
-			for _, v in optionsettings.List do
-				if v == optionapi.Value then continue end
-				local dropdownoption = Instance.new('TextButton')
-				dropdownoption.Name = v..'Option'
-				dropdownoption.Size = UDim2.new(1, 0, 0, 26)
-				dropdownoption.Position = UDim2.fromOffset(0, ind * 26)
-				dropdownoption.BackgroundColor3 = Pallet.Main
-				dropdownoption.BorderSizePixel = 0
-				dropdownoption.AutoButtonColor = false
-				dropdownoption.Text = '        '..v
-				dropdownoption.TextXAlignment = Enum.TextXAlignment.Left
-				dropdownoption.TextColor3 = ColorDark(Pallet.Text, 0.16)
-				dropdownoption.TextSize = 13
-				dropdownoption.TextTruncate = Enum.TextTruncate.AtEnd
-				dropdownoption.FontFace = Pallet.Font
-				dropdownoption.Parent = dropdownchildren
-				dropdownoption.MouseEnter:Connect(function()
-					Tween(dropdownoption, Pallet.Tween, {
-						BackgroundColor3 = ColorLight(Pallet.Main, 0.02)
-					})
-				end)
-				dropdownoption.MouseLeave:Connect(function()
-					Tween(dropdownoption, Pallet.Tween, {
-						BackgroundColor3 = Pallet.Main
-					})
-				end)
-				dropdownoption.MouseButton1Click:Connect(function()
-					optionapi:SetValue(v, true)
-				end)
-				ind += 1
-			end
+		if dropdownchildren then
+			closeDropdown()
 		else
-			optionapi:SetValue(optionapi.Value, true)
+			openDropdown()
 		end
 	end)
 	dropdown.MouseEnter:Connect(function()
@@ -663,7 +775,7 @@ local function CreateDropdown(optionsettings, children, api)
 	end)
 
 	optionapi.Object = dropdown
-	api.Options[optionsettings.Name] = optionapi
+	api.Options[optionsettings.Title or 'Default Name'] = optionapi
 	return optionapi
 end
 
@@ -677,9 +789,9 @@ local function CreateTextBox(optionsettings, children, api)
 	}
 
 	local textbox = Instance.new('TextButton')
-	textbox.Name = optionsettings.Name..'TextBox'
+	textbox.Name = (optionsettings.Title or 'Default Name')..'TextBox'
 	textbox.Size = UDim2.new(1, 0, 0, 58)
-	textbox.BackgroundColor3 = ColorDark(Pallet.Module, optionsettings.Darker and 0.02 or 0)
+	textbox.BackgroundColor3 = Pallet.Module
 	textbox.BorderSizePixel = 0
 	textbox.AutoButtonColor = false
 	textbox.Visible = optionsettings.Visible == nil or optionsettings.Visible
@@ -689,7 +801,7 @@ local function CreateTextBox(optionsettings, children, api)
 	title.Size = UDim2.new(1, -30, 0, 20)
 	title.Position = UDim2.fromOffset(15, 3)
 	title.BackgroundTransparency = 1
-	title.Text = optionsettings.Name
+	title.Text = optionsettings.Title or 'Default Name'
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	title.TextColor3 = Pallet.Text
 	title.TextSize = 12
@@ -715,12 +827,11 @@ local function CreateTextBox(optionsettings, children, api)
 	box.FontFace = Pallet.Font
 	box.ClearTextOnFocus = false
 	box.Parent = bkg
-	optionsettings.Function = optionsettings.Function or function() end
 
 	function optionapi:SetValue(val, enter, input)
 		self.Value = val
 		box.Text = val
-		if enter then
+		if enter and optionsettings.Function then
 			optionsettings.Function(val)
 		end
 	end
@@ -736,7 +847,7 @@ local function CreateTextBox(optionsettings, children, api)
 	end)
 
 	optionapi.Object = textbox
-	api.Options[optionsettings.Name] = optionapi
+	api.Options[optionsettings.Title or 'Default Name'] = optionapi
 	return optionapi
 end
 
@@ -768,32 +879,186 @@ local function CreateLabel(optionsettings, children, api)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local optionapi = {
 		Type = 'Label',
-		Name = optionsettings.Name or "",
+		Name = optionsettings.Title or 'Default Name',
 		Index = 0
 	}
 
-	local textbox = Instance.new('TextLabel')
-	textbox.Name = optionsettings.Name..'TextBox'
-	textbox.Size = UDim2.new(1, 0, 0, 32)
-	textbox.BackgroundColor3 = ColorDark(Pallet.Module, optionsettings.Darker and 0.02 or 0)
-	textbox.BorderSizePixel = 0
-	textbox.TextXAlignment = Enum.TextXAlignment.Left
-	textbox.TextColor3 = Pallet.Text
-	textbox.TextSize = 12
-	textbox.FontFace = Pallet.Font
-	textbox.Visible = optionsettings.Visible == nil or optionsettings.Visible
-	textbox.Text = "     "..optionapi.Name
-	textbox.Parent = children
-	
+	local frame = Instance.new('Frame')
+	frame.Name = (optionsettings.Title or 'Default Name')..'Label'
+	frame.Size = UDim2.new(1, 0, 0, 32)
+	frame.BackgroundColor3 = Pallet.Module
+	frame.BorderSizePixel = 0
+	frame.Visible = optionsettings.Visible == nil or optionsettings.Visible
+	frame.Parent = children
 
-	
-	function optionapi:SetValue(val)
-		self.Value = val
-		textbox.Text = val
+	local textLabel = Instance.new('TextLabel')
+	textLabel.Name = 'Text'
+	textLabel.Size = UDim2.new(1, -16, 1, -6)
+	textLabel.Position = UDim2.fromOffset(10, 3)
+	textLabel.BackgroundTransparency = 1
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.TextYAlignment = Enum.TextYAlignment.Top
+	textLabel.TextColor3 = Pallet.Text
+	textLabel.TextSize = 12
+	textLabel.FontFace = Pallet.Font
+	textLabel.RichText = optionsettings.RichText or false
+	textLabel.TextWrapped = true
+	textLabel.Text = optionapi.Name
+	textLabel.Parent = frame
+
+	local function updateSize()
+		local textSize = GetTextSize(textLabel.Text, textLabel.FontFace, textLabel.AbsoluteSize.X, textLabel.TextSize)
+		local newY = math.max(32, textSize.Y + 10)
+		frame.Size = UDim2.new(1, 0, 0, newY)
 	end
 
-	optionapi.Object = textbox
-	api.Options[optionsettings.Name] = optionapi
+	textLabel:GetPropertyChangedSignal('Text'):Connect(updateSize)
+	updateSize()
+
+	function optionapi:SetValue(val)
+		self.Value = val
+		textLabel.Text = val
+	end
+
+	optionapi.Object = frame
+	api.Options[optionsettings.Title or 'Default Name'] = optionapi
+	return optionapi
+end
+
+-- Component: Keybind
+local function CreateKeybind(optionsettings, children, api)
+	local Pallet = VapeLibrary.Internal.Pallet
+	local optionapi = {
+		Type = 'Keybind',
+		Value = optionsettings.Default,
+		Index = getTableSize(api.Options)
+	}
+
+	local keybind = Instance.new('TextButton')
+	keybind.Name = (optionsettings.Title or 'Default Name')..'Keybind'
+	keybind.Size = UDim2.new(1, 0, 0, 34)
+	keybind.BackgroundColor3 = Pallet.Module
+	keybind.BorderSizePixel = 0
+	keybind.AutoButtonColor = false
+	keybind.Visible = optionsettings.Visible == nil or optionsettings.Visible
+	keybind.Text = ''
+	keybind.Parent = children
+
+	local titleLabel = Instance.new('TextLabel')
+	titleLabel.Name = 'Title'
+	titleLabel.Size = UDim2.new(1, -80, 0, 34)
+	titleLabel.Position = UDim2.fromOffset(10, 0)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = (optionsettings.Title or 'Default Name')
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
+	titleLabel.TextSize = 14
+	titleLabel.FontFace = Pallet.Font
+	titleLabel.Parent = keybind
+
+	local bindBox = Instance.new('TextButton')
+	bindBox.Name = 'BindBox'
+	bindBox.Size = UDim2.fromOffset(24, 24)
+	bindBox.Position = UDim2.new(1, -34, 0, 5)
+	bindBox.BackgroundColor3 = ColorLight(Pallet.Main, 0.05)
+	bindBox.Text = ''
+	bindBox.AutoButtonColor = false
+	bindBox.Parent = keybind
+	MakeCorner(bindBox, UDim.new(0, 4))
+
+	local bindIcon = Instance.new('ImageLabel')
+	bindIcon.Name = 'BindIcon'
+	bindIcon.Size = UDim2.fromOffset(12, 12)
+	bindIcon.Position = UDim2.new(0.5, -6, 0.5, -6)
+	bindIcon.BackgroundTransparency = 1
+	bindIcon.Image = GetAsset('bind.png')
+	bindIcon.ImageColor3 = ColorDark(Pallet.Text, 0.16)
+	bindIcon.Visible = false
+	bindIcon.Parent = bindBox
+
+	local bindLabel = Instance.new('TextLabel')
+	bindLabel.Name = 'BindLabel'
+	bindLabel.Size = UDim2.new(1, -8, 1, 0)
+	bindLabel.Position = UDim2.fromOffset(4, 0)
+	bindLabel.BackgroundTransparency = 1
+	bindLabel.Text = optionapi.Value and optionapi.Value.Name or 'None'
+	bindLabel.TextXAlignment = Enum.TextXAlignment.Center
+	bindLabel.TextColor3 = ColorDark(Pallet.Text, 0.16)
+	bindLabel.TextSize = 12
+	bindLabel.FontFace = Pallet.Font
+	bindLabel.Parent = bindBox
+
+	local listening = false
+	local keybindConnection
+
+	local function updateDisplay()
+		if optionapi.Value then
+			bindLabel.Text = optionapi.Value.Name
+			bindLabel.Visible = true
+			bindIcon.Visible = false
+		else
+			bindLabel.Visible = false
+			bindIcon.Visible = true
+		end
+	end
+
+	local function onKeybindPressed(input, gameProcessed)
+		if gameProcessed then return end
+		if optionapi.Value and input.KeyCode == optionapi.Value then
+			if optionsettings.Function then
+				optionsettings.Function()
+			end
+		end
+	end
+
+	local function startListening()
+		listening = true
+		bindLabel.Text = '...'
+		bindLabel.Visible = true
+		bindIcon.Visible = false
+
+		local inputConnection
+		inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if input.UserInputType == Enum.UserInputType.Keyboard then
+				if input.KeyCode == Enum.KeyCode.Escape then
+					optionapi.Value = nil
+				else
+					optionapi.Value = input.KeyCode
+				end
+				updateDisplay()
+				listening = false
+				if inputConnection then
+					inputConnection:Disconnect()
+				end
+			end
+		end)
+	end
+
+	function optionapi:SetValue(val)
+		self.Value = val
+		updateDisplay()
+	end
+
+	bindBox.MouseEnter:Connect(function()
+		Tween(bindBox, Pallet.Tween, {
+			BackgroundColor3 = ColorLight(Pallet.Main, 0.0875)
+		})
+	end)
+	bindBox.MouseLeave:Connect(function()
+		Tween(bindBox, Pallet.Tween, {
+			BackgroundColor3 = ColorLight(Pallet.Main, 0.05)
+		})
+	end)
+	bindBox.MouseButton1Click:Connect(function()
+		if not listening then
+			startListening()
+		end
+	end)
+
+	keybindConnection = UserInputService.InputBegan:Connect(onKeybindPressed)
+
+	optionapi.Object = keybind
+	api.Options[optionsettings.Title or 'Default Name'] = optionapi
 	return optionapi
 end
 
@@ -805,7 +1070,8 @@ local Components = {
 	Dropdown = CreateDropdown,
 	TextBox = CreateTextBox,
 	Divider = CreateDivider,
-	Label = CreateLabel
+	Label = CreateLabel,
+	Keybind = CreateKeybind
 }
 
 -- Tab (Category) Class
@@ -836,6 +1102,10 @@ function TabClass:CreateLabel(settings)
 	return Components.Label(settings, self.Children, self)
 end
 
+function TabClass:CreateKeybind(settings)
+	return Components.Keybind(settings, self.Children, self)
+end
+
 -- Module Class (for expandable modules with settings)
 local ModuleClass = {}
 ModuleClass.__index = ModuleClass
@@ -858,6 +1128,10 @@ end
 
 function ModuleClass:CreateTextBox(settings)
 	return Components.TextBox(settings, self.Children, self)
+end
+
+function ModuleClass:CreateKeybind(settings)
+	return Components.Keybind(settings, self.Children, self)
 end
 
 function TabClass:CreateModule(settings)
@@ -1223,9 +1497,6 @@ end
 
 function VapeLibrary:CreateWindow(settings)
 	settings = settings or {}
-	if settings.Version then
-		VapeLibrary.Version = settings.Version
-	end
 	local Pallet = VapeLibrary.Internal.Pallet
 	VapeLibrary.Internal.ScreenGui = Instance.new("ScreenGui", gethui and gethui() or cloneref(game:GetService("Players")).LocalPlayer.PlayerGui)
 	VapeLibrary.Internal.ScreenGui.IgnoreGuiInset = true
