@@ -1199,6 +1199,10 @@ function ModuleClass:CreateKeybind(settings)
 	return Components.Keybind(settings, self.Children, self)
 end
 
+function ModuleClass:CreateLabel(settings)
+	return Components.Label(settings, self.Children, self)
+end
+
 function TabClass:CreateModule(settings)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local parentTab = self
@@ -1278,8 +1282,9 @@ function TabClass:CreateModule(settings)
 		self.Enabled = not self.Enabled
 		dividerFrame.Visible = self.Enabled
 		gradient.Enabled = self.Enabled
-		modulebutton.TextColor3 = (hovered or modulechildren.Visible) and Pallet.Text or ColorDark(Pallet.Text, 0.16)
-		local baseColor = self.Enabled and Pallet.ModuleLight or Pallet.Module
+		modulebutton.TextColor3 = (hovered or modulechildren.Visible) and Pallet.Text or (self.Enabled and ColorLight(Pallet.Text, 0.1) or ColorDark(Pallet.Text, 0.16))
+		dots.ImageColor3 = self.Enabled and ColorLight(Pallet.Text, 0.1) or ColorLight(Pallet.Module, 0.37)
+		local baseColor = self.Enabled and Color3.fromRGB(5, 132, 102) or Pallet.Module
 		modulebutton.BackgroundColor3 = (hovered or modulechildren.Visible) and ColorLight(baseColor, 0.02) or baseColor
 		if not self.Enabled then
 			for _, v in self.Connections do
@@ -1293,11 +1298,15 @@ function TabClass:CreateModule(settings)
 	dotsbutton.MouseEnter:Connect(function()
 		if not moduleapi.Enabled then
 			dots.ImageColor3 = Pallet.Text
+		else
+			dots.ImageColor3 = ColorLight(Pallet.Text, 0.1)
 		end
 	end)
 	dotsbutton.MouseLeave:Connect(function()
 		if not moduleapi.Enabled then
 			dots.ImageColor3 = ColorLight(Pallet.Module, 0.37)
+		else
+			dots.ImageColor3 = ColorLight(Pallet.Text, 0.1)
 		end
 	end)
 	dotsbutton.MouseButton1Click:Connect(function()
@@ -1321,7 +1330,7 @@ function TabClass:CreateModule(settings)
 	modulebutton.MouseEnter:Connect(function()
 		hovered = true
 		if not modulechildren.Visible then
-			local baseColor = moduleapi.Enabled and Pallet.ModuleLight or Pallet.Module
+			local baseColor = moduleapi.Enabled and Color3.fromRGB(5, 132, 102) or Pallet.Module
 			modulebutton.TextColor3 = Pallet.Text
 			modulebutton.BackgroundColor3 = ColorLight(baseColor, 0.02)
 		end
@@ -1329,8 +1338,8 @@ function TabClass:CreateModule(settings)
 	modulebutton.MouseLeave:Connect(function()
 		hovered = false
 		if not modulechildren.Visible then
-			local baseColor = moduleapi.Enabled and Pallet.ModuleLight or Pallet.Module
-			modulebutton.TextColor3 = ColorDark(Pallet.Text, 0.16)
+			local baseColor = moduleapi.Enabled and Color3.fromRGB(5, 132, 102) or Pallet.Module
+			modulebutton.TextColor3 = moduleapi.Enabled and ColorLight(Pallet.Text, 0.1) or ColorDark(Pallet.Text, 0.16)
 			modulebutton.BackgroundColor3 = baseColor
 		end
 	end)
@@ -1895,24 +1904,24 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 			ImageTransparency = 0.4,
 		})
 	})
-	
+
 	local Size = GetTextSize(Settings.Text, Pallet.Font, Notification.AbsoluteSize.X - 16, 14)
 	Notification.Text.Size = UDim2.new(1, -16, 0, Size.Y)
 	Tween(Notification, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 60 + Size.Y),BackgroundTransparency = 0.15})
-	
+
 	local Closed = false
-	
+
 	local CloseTween = TweenService:Create(Notification, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1,0,0,0), BackgroundTransparency = 1})
-	
+
 	CloseTween.Completed:Once(function()
 		Notification:Destroy()
 	end)
-	
+
 	Notification.Close.MouseButton1Click:Connect(function()
 		CloseTween:Play()
 		Closed = true
 	end)
-	
+
 	if not Settings.IsPinned then
 		local remaining = Settings.Duration
 		local TimeLabel = Notification.Time
@@ -1938,16 +1947,5 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 	end
 end
 
-return VapeLibrary
 
-local a = VapeLibrary:CreateWindow()
-local tab = a:CreateTab({Name = "asda"})
-local m = tab:CreateButton({Function = function() 
-	VapeLibrary:CreateNotification({
-		Title = "Notification Title",
-		Text = "Notificaiton Text",
-		Type = "info",
-		Duration = 2.5,
-		Pinned = false
-	})
-end})
+local Window = VapeLibrary:CreateWindow()
