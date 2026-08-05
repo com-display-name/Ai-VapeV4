@@ -1947,5 +1947,4 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 	end
 end
 
-
-local Window = VapeLibrary:CreateWindow()
+return VapeLibrary
