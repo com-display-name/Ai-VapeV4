@@ -10,16 +10,23 @@ local VapeLibrary = {
 			ModuleLight = Color3.fromRGB(37, 35, 37),
 			Text = Color3.fromRGB(200, 200, 200),
 			Font = Font.fromEnum(Enum.Font.Arial),
-			FontSemiBold = Font.fromEnum(Enum.Font.Arial, Enum.FontWeight.SemiBold),
-			Tween = TweenInfo.new(0.16, Enum.EasingStyle.Linear)
+			Tween = TweenInfo.new(0.16, Enum.EasingStyle.Linear),
+			GUIColor = {
+				Hue = 0.46,
+				Sat = 0.96,
+				Value = 0.52
+			}
 		},
 		ScreenGui = nil,
+		ClickGui = nil,
 		MainFrame = nil,
+		MainChildren = nil,
+		NotificationFrame = nil,
+		Tooltip = nil,
 		Blur = nil,
 		Modules = {},
-		Categories = {}
-	},
-	Version = "4.18"
+		Categories = {},
+	}
 }
 
 local cloneref = cloneref or function(...) return ... end
@@ -58,7 +65,10 @@ local Assets = {
 	['profilesicon.png'] = 'rbxassetid://14397465323',
 	['macrosicon.png'] = 'rbxassetid://14368340000',
 	['bind.png'] = 'rbxassetid://14368304734',
-	['vape.png'] = 'rbxassetid://14373395239'
+	['vape.png'] = 'rbxassetid://14373395239',
+	["warning.png"] = "rbxassetid://14368361552",
+	["info.png"] = "rbxassetid://14368324807",
+	["pin.png"] = "rbxassetid://14368342301"
 }
 
 local function Make(ClassName, Properties, Children)
@@ -84,7 +94,7 @@ local function GetTextSize(Text, font, MaxWidth, FontSize)
 	return TextService:GetTextBoundsAsync(TB)
 end
 
-local function GetAsset(IconName)
+local function GetAsset(IconName : string | number)
 	if type(IconName) == "number" then
 		return "rbxassetid://" .. IconName
 	elseif type(IconName) == "string" and string.sub(IconName, 1, 12) == "rbxassetid://" then
@@ -147,6 +157,15 @@ local function MakeCorner(parent, radius)
 	})
 end
 
+local function MakeOutline(parent, MakeBright)
+	return Make("UIStroke", {
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, -- incase of text
+		Color = MakeBright and Color3.fromRGB(190,190,190) or Color3.fromRGB(131,131,131),
+		Transparency = MakeBright and 0.75 or 0,
+		Parent = parent
+	})
+end
+
 local function MakeDraggable(gui, window)
 	gui.InputBegan:Connect(function(inputObj)
 		if window and not window.Visible then return end
@@ -180,13 +199,51 @@ local function MakeDraggable(gui, window)
 	end)
 end
 
-local function AddTooltip(BoundingFrame, Text)
+local function AddTooltip(BoundingFrame, Text, HoverTimeNeeded, MovesWithMouse)
 	if not Text then return end
+
+	MovesWithMouse = MovesWithMouse or true
+	local IsInFrame = false
+	local IsShown = false
+	local Tooltip = VapeLibrary.Internal.Tooltip
+
 	BoundingFrame.MouseEnter:Connect(function()
-		-- Tooltip implementation
+		if not Tooltip then return end 
+		Tooltip.Text = Text
+
+		local Size = GetTextSize(Text, VapeLibrary.Internal.Pallet.Font, 250, 14) + Vector2.new(22, 12)
+
+		IsInFrame = true
+
+
+		task.delay(HoverTimeNeeded or 0.5, function() 
+			if not IsInFrame then return end
+			IsShown = true
+			Tooltip.Visible = true
+			Tween(Tooltip, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = UDim2.new(0,Size.X,0,Size.Y)})
+
+			task.delay(0.075, function() Tooltip.TextTransparency = 0 end)
+			local Mouse = UserInputService:GetMouseLocation()
+			Tooltip.Position = UDim2.fromOffset(Mouse.X + 16, Mouse.Y + 16)
+		end)
+
 	end)
 	BoundingFrame.MouseLeave:Connect(function()
-		-- Tooltip hide
+		if not Tooltip then return end 
+		IsInFrame = false
+
+		if IsShown then
+			IsShown = false
+			Tween(Tooltip, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = UDim2.new(0,0,0)})
+			Tooltip.Text = ""
+			task.delay(0.075, function() Tooltip.TextTransparency = 1 end)
+			task.delay(0.15, function() Tooltip.Visible = false end)
+		end
+	end)
+	BoundingFrame.MouseMoved:Connect(function()
+		if (not IsShown) and MovesWithMouse then return end
+		local Mouse = UserInputService:GetMouseLocation()
+		Tooltip.Position = UDim2.fromOffset(Mouse.X + 16, Mouse.Y + 16)
 	end)
 end
 
@@ -222,37 +279,6 @@ local function addMaid(object)
 			table.insert(self.Connections, callback)
 		end
 	end
-end
-
-local function addCloseButton(parent, offset)
-	local close = Make('ImageButton', {
-		Name = 'Close',
-		Size = UDim2.fromOffset(24, 24),
-		Position = UDim2.new(1, -35, 0, offset or 9),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 1,
-		AutoButtonColor = false,
-		Image = GetAsset('close.png'),
-		ImageColor3 = ColorLight(VapeLibrary.Internal.Pallet.Text, 0.2),
-		ImageTransparency = 0.5,
-		Parent = parent
-	})
-	MakeCorner(close, UDim.new(1, 0))
-
-	close.MouseEnter:Connect(function()
-		close.ImageTransparency = 0.3
-		Tween(close, VapeLibrary.Internal.Pallet.Tween, {
-			BackgroundTransparency = 0.6
-		})
-	end)
-	close.MouseLeave:Connect(function()
-		close.ImageTransparency = 0.5
-		Tween(close, VapeLibrary.Internal.Pallet.Tween, {
-			BackgroundTransparency = 1
-		})
-	end)
-
-	return close
 end
 
 -- Component: Toggle
@@ -292,18 +318,18 @@ local function CreateToggle(optionsettings, children, api)
 	knob.Position = UDim2.fromOffset(2, 2)
 	knob.BackgroundColor3 = Pallet.Main
 	knob.Parent = knobholder
-	
+
 	local function _Toggle()
 		optionapi.Enabled = not optionapi.Enabled
 		Tween(knobholder, Pallet.Tween, {
-			BackgroundColor3 = optionapi.Enabled and Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value) or (hovered and ColorLight(Pallet.Main, 0.37) or ColorLight(Pallet.Main, 0.14))
+			BackgroundColor3 = optionapi.Enabled and Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value) or (hovered and ColorLight(Pallet.Main, 0.37) or ColorLight(Pallet.Main, 0.14))
 		})
 		Tween(knob, Pallet.Tween, {
 			Position = UDim2.fromOffset(optionapi.Enabled and 12 or 2, 2)
 		})
-		
+
 	end
-	
+
 	function optionapi:Toggle()
 		_Toggle()
 		if optionsettings.Function then
@@ -460,7 +486,7 @@ local function CreateSlider(optionsettings, children, api)
 	fill.Name = 'Fill'
 	fill.Size = UDim2.fromScale(math.clamp((optionapi.Value - (optionsettings.Min or 0)) / (optionsettings.Max or 10), 0.04, 0.96), 1)
 	fill.Position = UDim2.new()
-	fill.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value)
+	fill.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value)
 	fill.Parent = bkg
 	local knobholder = Make('Frame', {
 		Name = 'Knob',
@@ -476,14 +502,14 @@ local function CreateSlider(optionsettings, children, api)
 		Size = UDim2.fromOffset(14, 14),
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value),
+		BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value),
 		Parent = knobholder
 	})
 	MakeCorner(knob, UDim.new(1, 0))
 	optionsettings.Increment = optionsettings.Increment or 1
 	optionsettings.Min = optionsettings.Min or 0
 	optionsettings.Max = optionsettings.Max or 10
-	
+
 	local incrementValue = optionsettings.Increment
 	if incrementValue ~= 0 then
 		incrementValue = 1 / incrementValue
@@ -904,6 +930,8 @@ local function CreateDivider(children, text)
 		divider.Parent = label
 	end
 end
+
+-- Component: Label
 local function CreateLabel(optionsettings, children, api)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local optionapi = {
@@ -1097,6 +1125,7 @@ local function CreateKeybind(optionsettings, children, api)
 	api.Options[optionsettings.Title or 'Default Name'] = optionapi
 	return optionapi
 end
+
 
 -- Components table
 local Components = {
@@ -1351,9 +1380,11 @@ function WindowClass:CreateTab(settings)
 		Visible = false,
 		Text = '',
 		Parent = VapeLibrary.Internal.ClickGui
+	}, {
+		MakeBlur(),
+		MakeCorner(),
+		MakeOutline(nil, true)
 	})
-	MakeBlur(window)
-	MakeCorner(window)
 	MakeDraggable(window)
 	local icon = Make('ImageLabel', {
 		Name = 'Icon',
@@ -1413,6 +1444,7 @@ function WindowClass:CreateTab(settings)
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		BackgroundTransparency = 0.928,
 		BorderSizePixel = 0,
+		Visible = false,
 		Parent = window
 	})
 	local windowlist = Make('UIListLayout', {
@@ -1515,7 +1547,7 @@ function WindowClass:CreateTab(settings)
 		Tween(catArrow, Pallet.Tween, {
 			Position = UDim2.new(1, self.Enabled and -14 or -20, 0, 16)
 		})
-		categoryButton.TextColor3 = self.Enabled and Color3.fromHSV(VapeLibrary.Internal.GUIColor.Hue, VapeLibrary.Internal.GUIColor.Sat, VapeLibrary.Internal.GUIColor.Value) or Pallet.Text
+		categoryButton.TextColor3 = self.Enabled and Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value) or Pallet.Text
 		if catIcon then
 			catIcon.ImageColor3 = categoryButton.TextColor3
 		end
@@ -1549,8 +1581,7 @@ function WindowClass:CreateTab(settings)
 	return categoryapi
 end
 
-function VapeLibrary:CreateWindow(settings)
-	settings = settings or {}
+function VapeLibrary:CreateWindow()
 	local Pallet = VapeLibrary.Internal.Pallet
 	VapeLibrary.Internal.ScreenGui = Instance.new("ScreenGui", gethui and gethui() or cloneref(game:GetService("Players")).LocalPlayer.PlayerGui)
 	VapeLibrary.Internal.ScreenGui.IgnoreGuiInset = true
@@ -1560,23 +1591,56 @@ function VapeLibrary:CreateWindow(settings)
 		VapeLibrary.Internal.ScreenGui.OnTopOfCoreBlur = true
 	else
 		VapeLibrary.Internal.Blur = Make("BlurEffect", {
-			Name = "Vape",
+			Name = RandomString(20),
 			Enabled = false,
 			Parent = game:GetService("Lighting"),
 			Size = 36
 		})
 	end
 
-	local Holder = Make("Frame", {Name = "Holder", Size = UDim2.new(1,0,1,0), BackgroundTransparency = 1, Parent = VapeLibrary.Internal.ScreenGui})
-
 	local ClickGui = Make("Frame", {
 		Name = "ClickGui",
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		Visible = false,
-		Parent = Holder
+		Parent = VapeLibrary.Internal.ScreenGui
 	})
 	VapeLibrary.Internal.ClickGui = ClickGui    
+
+	VapeLibrary.Internal.Tooltip = Make("TextLabel", {
+		Name = "Tooltip",
+		Size = UDim2.new(0,0,0,0),
+		FontFace = Pallet.Font,
+		TextSize = 14,
+		TextColor3 = Pallet.Text,
+		Text = "Tooltip Placeholder",
+		BackgroundColor3 = Pallet.Main,
+		Parent = ClickGui,
+		Visible = false,
+		ZIndex = 9999999
+	}, {
+		Make("UISizeConstraint", {
+			MinSize = Vector2.new(0,0),
+			MaxSize = Vector2.new(250, math.huge),
+		}),
+		MakeBlur(),
+		MakeCorner(),
+		MakeOutline()
+	})
+
+	VapeLibrary.Internal.NotificationFrame = Make("Frame", {
+		BackgroundTransparency = 1,
+		Name = "Notifications",
+		Parent = VapeLibrary.Internal.ScreenGui,
+		Size = UDim2.new(0.25, -24, 1, -24),
+		Position = UDim2.new(0.75, 12, 0, 12)
+	},{
+		Make("UIListLayout", {
+			Padding = UDim.new(0, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Bottom
+		})
+	})
 
 	local UIScale = Make("UIScale", {
 		Parent = ClickGui,
@@ -1584,26 +1648,28 @@ function VapeLibrary:CreateWindow(settings)
 	})
 
 	local MainFrame = Make("TextButton", {
-		Name = "GUICategory",
+		Name = "Main",
 		Position = UDim2.fromOffset(6, 60),
 		Size = UDim2.fromOffset(220, 41),
 		BackgroundColor3 = ColorDark(Pallet.Main, 0.02),
 		AutoButtonColor = false,
 		Text = '',
 		Parent = ClickGui
+	}, {
+		MakeBlur(),
+		MakeCorner(),
+		MakeOutline(nil, true),
+		Make("UISizeConstraint", {
+			MinSize = Vector2.new(0,500),
+			MaxSize = Vector2.new(math.huge, math.huge),
+		})
 	})
 
-	local SizeConstraint = Make("UISizeConstraint", {
-		MinSize = Vector2.new(0,500),
-		MaxSize = Vector2.new(math.huge, math.huge),
-		Parent = MainFrame
-	})
+
 	VapeLibrary.Internal.MainFrame = MainFrame
-	MakeBlur(MainFrame)
-	MakeCorner(MainFrame)
 	MakeDraggable(MainFrame)
 
-	local logo = Make('ImageLabel', {
+	Make('ImageLabel', {
 		Name = 'VapeLogo',
 		Size = UDim2.fromOffset(62, 18),
 		Position = UDim2.fromOffset(11, 10),
@@ -1611,15 +1677,25 @@ function VapeLibrary:CreateWindow(settings)
 		Image = GetAsset('guivape.png'),
 		ImageColor3 = select(3, Pallet.Main:ToHSV()) > 0.5 and Pallet.Text or Color3.new(1, 1, 1),
 		Parent = MainFrame
+	}, {
+		Make('ImageLabel', {
+			Name = 'V4Logo',
+			Size = UDim2.fromOffset(28, 16),
+			Position = UDim2.new(1, 1, 0, 1),
+			BackgroundTransparency = 1,
+			Image = GetAsset('guiv4.png'),
+			ImageColor3 = Color3.fromRGB(5, 132, 102)
+		})
 	})
-	local logov4 = Make('ImageLabel', {
-		Name = 'V4Logo',
-		Size = UDim2.fromOffset(28, 16),
-		Position = UDim2.new(1, 1, 0, 1),
-		BackgroundTransparency = 1,
-		Image = GetAsset('guiv4.png'),
-		ImageColor3 = Color3.fromRGB(5, 132, 102),
-		Parent = logo
+
+	Make("Frame", {
+		Name = "Divider",
+		Position = UDim2.new(0, 0, 0, 37),
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.928,
+		BorderSizePixel = 0,
+		Parent = MainFrame
 	})
 
 	local MainChildren = Make('Frame', {
@@ -1637,7 +1713,8 @@ function VapeLibrary:CreateWindow(settings)
 		Parent = MainChildren
 	})
 
-	if settings.MakeSettings ~= false then
+	-- Do not remove this: (Might get implemented soon)
+	--[[
 		local settingsbutton = Make('TextButton', {
 			Name = 'Settings',
 			Size = UDim2.fromOffset(40, 40),
@@ -1703,18 +1780,12 @@ function VapeLibrary:CreateWindow(settings)
 		close.MouseButton1Click:Connect(function()
 			settingspane.Visible = false
 		end)
-	end
+    ]]
 
 	MainList:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 		local contentHeight = MainList.AbsoluteContentSize.Y
 		MainFrame.Size = UDim2.fromOffset(220, 42 + contentHeight)
 	end)
-
-	VapeLibrary.Internal.GUIColor = {
-		Hue = 0.46,
-		Sat = 0.96,
-		Value = 0.52
-	}
 
 	setmetatable({ClickGui = ClickGui, MainFrame = MainFrame}, WindowClass)
 	local windowApi = setmetatable({ClickGui = ClickGui, MainFrame = MainFrame}, WindowClass)
@@ -1731,7 +1802,152 @@ function VapeLibrary:CreateWindow(settings)
 			end
 		end
 	end)
+
 	return windowApi
 end
 
+function VapeLibrary:CreateNotification(NotificationSettings)
+	NotificationSettings = NotificationSettings or {}
+	local Settings = {
+		Title = NotificationSettings.Title or "Default Name",
+		Text = NotificationSettings.Text or "Default Text",
+		Type = NotificationSettings.Type or "info",
+		IsPinned = NotificationSettings.Pinned or false,
+		Duration = NotificationSettings.Duration or 2.5
+	}
+	if not VapeLibrary.Internal.NotificationFrame then return end
+	local Holder = VapeLibrary.Internal.NotificationFrame
+	local Pallet = VapeLibrary.Internal.Pallet
+
+
+	local Notification = Make("Frame", {
+		Name = Settings.Title,
+		Parent = Holder,
+		BackgroundColor3 = Pallet.Main,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1,0,0,00)
+	}, {
+		MakeBlur(nil, true),
+		MakeOutline(nil, true),
+		MakeCorner(),
+		Make("ImageLabel", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(0, 74, 0, 74),
+			Position = UDim2.new(0, -18, 0, -18),
+			Image = GetAsset(Settings.Type .. ".png"),
+		}),
+		Make("TextLabel", {
+			Size = UDim2.new(1, -44, 0, 28),
+			Position = UDim2.new(0, 36, 0, 6),
+			BackgroundTransparency = 1,
+			Text = Settings.Title,
+			TextSize = 16,
+			FontFace = Pallet.Font,
+			TextColor3 = Pallet.Text,
+			Name = "Title",
+			TextXAlignment = Enum.TextXAlignment.Left
+		}),
+		Make("Frame", {
+			Size = UDim2.new(1, -16, 0, 1), 
+			Position = UDim2.new(0, 8, 0, 36), 
+			BackgroundTransparency = 0.65, 
+			BackgroundColor3 = Color3.fromRGB(131,131,131), 
+			BorderSizePixel = 0
+		}),
+		Make("TextLabel", {
+			Name = "Text",
+			Size = UDim2.new(1, -16, 1, -48),
+			Position = UDim2.new(0, 8, 0, 44),
+			BackgroundTransparency = 1,
+			Text = Settings.Text,
+			TextSize = 14,
+			FontFace = Pallet.Font,
+			TextColor3 = Pallet.Text,
+			TextXAlignment = Enum.TextXAlignment.Left
+		}),
+		Make("ImageLabel", {
+			Name = "Pin",
+			Image = GetAsset("pin.png"),
+			Size = UDim2.new(0, 16, 0, 16),
+			Position = UDim2.new(1,-48, 0, 10),
+			BackgroundTransparency = 1,
+			ImageTransparency = 0.4,
+			Visible = Settings.IsPinned,
+		}),
+		Make("TextLabel", {
+			Name = "Time",
+			Size = UDim2.new(0, 16, 0, 16),
+			Position = UDim2.new(1,-48, 0, 10),
+			BackgroundTransparency = 1,
+			Text = "<b>" .. Settings.Duration .. "</b>",
+			TextSize = 14,
+			RichText = true,
+			FontFace = Pallet.Font,
+			TextColor3 = Pallet.Text,
+			Visible = not Settings.IsPinned,
+		}),
+		Make("ImageButton", {
+			Name = "Close",
+			Image = GetAsset("close.png"),
+			Size = UDim2.new(0, 32, 0, 32),
+			Position = UDim2.new(1,-34, 0, 2),
+			BackgroundTransparency = 1,
+			ImageTransparency = 0.4,
+		})
+	})
+	
+	local Size = GetTextSize(Settings.Text, Pallet.Font, Notification.AbsoluteSize.X - 16, 14)
+	Notification.Text.Size = UDim2.new(1, -16, 0, Size.Y)
+	Tween(Notification, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 60 + Size.Y),BackgroundTransparency = 0.15})
+	
+	local Closed = false
+	
+	local CloseTween = TweenService:Create(Notification, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1,0,0,0), BackgroundTransparency = 1})
+	
+	CloseTween.Completed:Once(function()
+		Notification:Destroy()
+	end)
+	
+	Notification.Close.MouseButton1Click:Connect(function()
+		CloseTween:Play()
+		Closed = true
+	end)
+	
+	if not Settings.IsPinned then
+		local remaining = Settings.Duration
+		local TimeLabel = Notification.Time
+
+		while true do
+			task.wait(0.1)
+
+			if Closed then
+				break
+			end
+
+			remaining -= 0.1
+			TimeLabel.Text = string.format("<b>%.1f</b>", remaining)
+
+			if remaining <= 0 then
+				break
+			end
+		end
+
+		if not Closed then
+			CloseTween:Play()
+		end
+	end
+end
+
 return VapeLibrary
+
+local a = VapeLibrary:CreateWindow()
+local tab = a:CreateTab({Name = "asda"})
+local m = tab:CreateButton({Function = function() 
+	VapeLibrary:CreateNotification({
+		Title = "Notification Title",
+		Text = "Notificaiton Text",
+		Type = "info",
+		Duration = 2.5,
+		Pinned = false
+	})
+end})
