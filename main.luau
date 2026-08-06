@@ -43,7 +43,7 @@ local UserInputService = CloneRef(game:GetService('UserInputService'))
 local TextService = CloneRef(game:GetService('TextService'))
 local GuiService = CloneRef(game:GetService('GuiService'))
 local RunService = CloneRef(game:GetService('RunService'))
-local Players = CloneRef(game:GetService("Players"))
+local Players = game:GetService("Players")
 
 local Assets = {
 	['arrowmodule.png'] = 'rbxassetid://14473354880',
@@ -168,7 +168,7 @@ local function MakeOutline(Parent, MakeBright)
 	return Make("UIStroke", {
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Color = MakeBright and VapeLibrary.Internal.Pallet.OutlineBright or VapeLibrary.Internal.Pallet.Outline,
-		Transparency = MakeBright and 0.75 or 0,
+		Transparency =  MakeBright and 0.75 or 0,
 		Parent = Parent
 	})
 end
@@ -309,22 +309,27 @@ end
 
 
 local function CreateToggle(OptionSettings, Children, Api, IsModuleElement)
+	OptionSettings = OptionSettings or {}
+	OptionSettings = {
+		Name = OptionSettings.Name or "Default Name",
+		Tooltip = OptionSettings.Tooltip or "",
+		Function = OptionSettings.Function or function(...) end
+	}
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Toggle',
-		Enabled = OptionSettings.Default or false,
+		Enabled = OptionSettings.Default,
 		Index = GetTableSize(Api.Options)
 	}
 
 	local Hovered = false
 	local ToggleButton = Make('TextButton', {
-		Name = (OptionSettings.Title or 'Default Name')..'Toggle',
+		Name = OptionSettings.Name..'Toggle',
 		Size = UDim2.new(1, 0, 0, 30),
 		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
-		Text = '   '..(OptionSettings.Title or 'Default Name'),
+		Text = '   '..OptionSettings.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 14,
@@ -339,6 +344,9 @@ local function CreateToggle(OptionSettings, Children, Api, IsModuleElement)
 		Parent = ToggleButton
 	})
 	MakeCorner(KnobHolder, UDim.new(1, 0))
+	if OptionSettings.Tooltip ~= "" then
+		AddTooltip(ToggleButton, OptionSettings.Tooltip, 1.5, true)
+	end
 	local Knob = KnobHolder:Clone()
 	Knob.Size = UDim2.fromOffset(8, 8)
 	Knob.Position = UDim2.fromOffset(2, 2)
@@ -353,23 +361,6 @@ local function CreateToggle(OptionSettings, Children, Api, IsModuleElement)
 		Tween(Knob, Pallet.Tween, {
 			Position = UDim2.fromOffset(OptionApi.Enabled and 12 or 2, 2)
 		})
-	end
-
-	function OptionApi:Toggle()
-		InternalToggle()
-		if OptionSettings.Function then
-			OptionSettings.Function(OptionApi.Enabled)
-		end
-	end
-
-	function OptionApi:SetValue(Val)
-		if type(Val) ~= 'boolean' then return end
-		if self.Enabled ~= Val then
-			InternalToggle()
-		end
-		if OptionSettings.Function then
-			OptionSettings.Function(Val)
-		end
 	end
 
 	ToggleButton.MouseEnter:Connect(function()
@@ -389,18 +380,43 @@ local function CreateToggle(OptionSettings, Children, Api, IsModuleElement)
 		end
 	end)
 	ToggleButton.MouseButton1Click:Connect(function()
-		OptionApi:Toggle()
+		InternalToggle()
+		OptionSettings.Function(OptionApi.Enabled)
 	end)
 
 	if OptionSettings.Default then
 		InternalToggle()
 	end
+
+
+
+	function OptionApi:Set(Val)
+		if type(Val) ~= 'boolean' then return end
+		if self.Enabled ~= Val then
+			InternalToggle()
+		end
+	end
+
+	function OptionApi:Destroy()
+		ToggleButton:Destroy()
+	end
+
+
+
+
 	OptionApi.Object = ToggleButton
-	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
+	Api.Options[OptionSettings.Name] = OptionApi
 	return OptionApi
 end
 
 local function CreateButton(OptionSettings, Children, Api, IsModuleElement)
+	OptionSettings = OptionSettings or {}
+	OptionSettings = {
+		Name = OptionSettings.Name or "Default Name",
+		Tooltip = OptionSettings.Tooltip or "",
+		Default = OptionSettings.Default or false,
+		Function = OptionSettings.Function or function(...) end
+	}
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Button',
@@ -408,12 +424,11 @@ local function CreateButton(OptionSettings, Children, Api, IsModuleElement)
 	}
 
 	local Button = Make('TextButton', {
-		Name = (OptionSettings.Title or 'Default Name')..'Button',
+		Name = OptionSettings.Name..'Button',
 		Size = UDim2.new(1, 0, 0, 31),
 		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
 		Text = '',
 		Parent = Children
 	})
@@ -428,19 +443,19 @@ local function CreateButton(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.new(1, -4, 1, -4),
 		Position = UDim2.fromOffset(2, 2),
 		BackgroundColor3 = Pallet.Main,
-		Text = OptionSettings.Title or 'Default Name',
+		Text = OptionSettings.Name,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 14,
 		FontFace = Pallet.Font,
 		Parent = Background
 	})
 	MakeCorner(Label, UDim.new(0, 4))
-
-	function OptionApi:Click()
-		if OptionSettings.Function then
-			OptionSettings.Function()
-		end
+	if OptionSettings.Tooltip ~= "" then
+		AddTooltip(Button, OptionSettings.Tooltip, 1.5, true)
 	end
+
+
+
 
 	Button.MouseEnter:Connect(function()
 		Tween(Background, Pallet.Tween, {
@@ -453,30 +468,47 @@ local function CreateButton(OptionSettings, Children, Api, IsModuleElement)
 		})
 	end)
 	Button.MouseButton1Click:Connect(function()
-		OptionApi:Click()
+		OptionSettings.Function()
 	end)
 
+
 	OptionApi.Object = Button
-	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
+	Api.Options[OptionSettings.Name] = OptionApi
 	return OptionApi
 end
 
 local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
+	OptionSettings = OptionSettings or {}
+	OptionSettings = {
+		Name = OptionSettings.Name or "Default Name",
+		Tooltip = OptionSettings.Tooltip or "",
+		Default = OptionSettings.Default or 5,
+		Min = OptionSettings.Min or 0,
+		Max = OptionSettings.Max or 10,
+		Prefix = OptionSettings.Prefix or "",
+		Suffix = OptionSettings.Suffix or "",
+		Increment = OptionSettings.Increment or 1,
+		Function = OptionSettings.Function or function(...) end
+	}
+
+	if not (OptionSettings.Min <= OptionSettings.Default and OptionSettings.Default <= OptionSettings.Max) then 
+		warn("Slider creation failed: Values")
+	end
+
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Slider',
-		Value = OptionSettings.Default or OptionSettings.Min or 0,
-		Max = OptionSettings.Max or 10,
+		Value = OptionSettings.Default,
+		Max = OptionSettings.Max,
 		Index = GetTableSize(Api.Options)
 	}
 
 	local Slider = Make('TextButton', {
-		Name = (OptionSettings.Title or 'Default Name')..'Slider',
+		Name = OptionSettings.Name..'Slider',
 		Size = UDim2.new(1, 0, 0, 50),
 		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
 		Text = '',
 		Parent = Children
 	})
@@ -485,7 +517,7 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.fromOffset(60, 30),
 		Position = UDim2.fromOffset(10, 2),
 		BackgroundTransparency = 1,
-		Text = OptionSettings.Title or 'Default Name',
+		Text = OptionSettings.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 11,
@@ -497,7 +529,7 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.fromOffset(60, 15),
 		Position = UDim2.new(1, -69, 0, 9),
 		BackgroundTransparency = 1,
-		Text = (OptionSettings.Prefix or '')..OptionApi.Value..(OptionSettings.Suffix and ' '..(type(OptionSettings.Suffix) == 'function' and OptionSettings.Suffix(OptionApi.Value) or OptionSettings.Suffix) or ''),
+		Text = (OptionSettings.Prefix .. OptionApi.Value .. OptionSettings.Suffix),
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 11,
@@ -528,7 +560,7 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 	})
 	local Fill = Background:Clone()
 	Fill.Name = 'Fill'
-	Fill.Size = UDim2.fromScale(math.clamp((OptionApi.Value - (OptionSettings.Min or 0)) / (OptionSettings.Max or 10), 0.04, 0.96), 1)
+	Fill.Size = UDim2.fromScale(math.clamp((OptionApi.Value - OptionSettings.Min) / (OptionSettings.Max - OptionSettings.Min), 0.04, 0.96), 1)
 	Fill.Position = UDim2.new()
 	Fill.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value)
 	Fill.Parent = Background
@@ -549,30 +581,26 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 		BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value),
 		Parent = KnobHolder
 	})
+	if OptionSettings.Tooltip ~= "" then
+		AddTooltip(Slider, OptionSettings.Tooltip, 1.5, true)
+	end
 	MakeCorner(Knob, UDim.new(1, 0))
-	OptionSettings.Increment = OptionSettings.Increment or 1
-	OptionSettings.Min = OptionSettings.Min or 0
-	OptionSettings.Max = OptionSettings.Max or 10
 
 	local IncrementValue = OptionSettings.Increment
-	if IncrementValue ~= 0 then
+	if IncrementValue > 0 then
 		IncrementValue = 1 / IncrementValue
 	else
 		IncrementValue = 1
 	end
 
-	function OptionApi:SetValue(Value, Position, Final)
-		if type(Value) ~= 'number' or Value ~= Value then return end
+	function OptionApi:SetValue(Value, Position)
+		if not (type(Value) == "number" and math.isfinite(Value)) then return end
 		Value = math.clamp(Value, OptionSettings.Min, OptionSettings.Max)
-		local Check = self.Value ~= Value
 		self.Value = Value
 		Tween(Fill, Pallet.Tween, {
 			Size = UDim2.fromScale(math.clamp(Position or math.clamp((Value - OptionSettings.Min) / (OptionSettings.Max - OptionSettings.Min), 0, 1), 0.04, 0.96), 1)
 		})
-		ValueButton.Text = (OptionSettings.Prefix or '')..self.Value..(OptionSettings.Suffix and ' '..(type(OptionSettings.Suffix) == 'function' and OptionSettings.Suffix(self.Value) or OptionSettings.Suffix) or '')
-		if (Check or Final) and OptionSettings.Function then
-			OptionSettings.Function(Value, Final)
-		end
+		ValueButton.Text = (OptionSettings.Prefix .. OptionApi.Value .. OptionSettings.Suffix)
 	end
 
 	Slider.InputBegan:Connect(function(InputObject)
@@ -589,6 +617,7 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 				if Input.UserInputType == (InputObject.UserInputType == Enum.UserInputType.MouseButton1 and Enum.UserInputType.MouseMovement or Enum.UserInputType.Touch) then
 					local NewPosition = math.clamp((Input.Position.X - Background.AbsolutePosition.X) / Background.AbsoluteSize.X, 0, 1)
 					OptionApi:SetValue(math.floor((OptionSettings.Min + (OptionSettings.Max - OptionSettings.Min) * NewPosition) * IncrementValue) / IncrementValue, NewPosition)
+					OptionSettings.Function(LastValue, false)
 					LastValue = OptionApi.Value
 					LastPosition = NewPosition
 				end
@@ -599,7 +628,8 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 				if InputObject.UserInputState == Enum.UserInputState.End then
 					if Changed then Changed:Disconnect() end
 					if Ended then Ended:Disconnect() end
-					OptionApi:SetValue(LastValue, LastPosition, true)
+					OptionApi:SetValue(LastValue, LastPosition)
+					OptionSettings.Function(LastValue, true)
 				end
 			end)
 		end
@@ -625,31 +655,39 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 		ValueBox.Visible = false
 		if Enter and tonumber(ValueBox.Text) then
 			local Clamped = math.clamp(tonumber(ValueBox.Text), OptionSettings.Min, OptionSettings.Max)
-			OptionApi:SetValue(math.floor(Clamped * IncrementValue) / IncrementValue, nil, true)
+			OptionApi:SetValue(math.floor(Clamped * IncrementValue) / IncrementValue, nil)
+			OptionSettings.Function(math.floor(Clamped * IncrementValue) / IncrementValue, true)
 		end
 	end)
 
 	OptionApi.Object = Slider
-	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
+	Api.Options[OptionSettings.Name] = OptionApi
 	return OptionApi
 end
 
 local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
+	OptionSettings = OptionSettings or {}
+	OptionSettings = {
+		Name = OptionSettings.Name or "Default Name",
+		Tooltip = OptionSettings.Tooltip or "",
+		Options = OptionSettings.Options or {"Option 1", "Option 2"},
+		Default = OptionSettings.Default or OptionSettings.Options[1] or "",
+		Function = OptionSettings.Function or function(...) end
+	}
 	local Pallet = VapeLibrary.Internal.Pallet
-	local OptionsList = OptionSettings.Options or {"Option 1", "Option 2"}
+	local OptionsList = OptionSettings.Options
 	local OptionApi = {
 		Type = 'Dropdown',
-		Value = OptionSettings.AllowMultiple and {} or (OptionSettings.Default or OptionsList[1] or 'None'),
+		Value = OptionSettings.AllowMultiple and {} or OptionSettings.Default,
 		Index = GetTableSize(Api.Options)
 	}
 
 	local Dropdown = Make('TextButton', {
-		Name = (OptionSettings.Title or 'Default Name')..'Dropdown',
+		Name = OptionSettings.Name..'Dropdown',
 		Size = UDim2.new(1, 0, 0, 54),
 		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
 		Text = '',
 		Parent = Children
 	})
@@ -659,7 +697,7 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.new(1, -20, 0, 20),
 		Position = UDim2.fromOffset(10, 2),
 		BackgroundTransparency = 1,
-		Text = (OptionSettings.Title or 'Default Name'),
+		Text = OptionSettings.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 12,
@@ -702,6 +740,9 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 		DisplayValue = #OptionApi.Value > 0 and table.concat(OptionApi.Value, ", ") or "None"
 	else
 		DisplayValue = OptionApi.Value
+	end
+	if OptionSettings.Tooltip ~= "" then
+		AddTooltip(Dropdown, OptionSettings.Tooltip, 1.5, true)
 	end
 	DisplayLabel.Text = DisplayValue
 	MakeCorner(Button, UDim.new(0, 6))
@@ -801,6 +842,7 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 			end)
 			DropdownOption.MouseButton1Click:Connect(function()
 				OptionApi:SetValue(V, true)
+				OptionSettings.Function(V)
 			end)
 			Index += 1
 		end
@@ -854,9 +896,6 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 			UpdateTitle()
 			CloseDropdown()
 		end
-		if OptionSettings.Function then
-			OptionSettings.Function(self.Value, Mouse)
-		end
 	end
 
 	function OptionApi:UpdateOptions(NewOptions)
@@ -897,11 +936,19 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 	end)
 
 	OptionApi.Object = Dropdown
-	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
+	Api.Options[OptionSettings.Name] = OptionApi
 	return OptionApi
 end
 
 local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
+	OptionSettings = OptionSettings or {}
+	OptionSettings = {
+		Name = OptionSettings.Name or "Default Name",
+		Default = OptionSettings.Default or "",
+		Placeholder = OptionSettings.Placeholder or "Click to set",
+		Tooltip = OptionSettings.Tooltip or "",
+		Function = OptionSettings.Function or function(...) end
+	}
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'TextBox',
@@ -910,12 +957,11 @@ local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
 	}
 
 	local TextBox = Make('TextButton', {
-		Name = (OptionSettings.Title or 'Default Name')..'TextBox',
+		Name = OptionSettings.Name.."TextBox",
 		Size = UDim2.new(1, 0, 0, 58),
 		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
 		Text = '',
 		Parent = Children
 	})
@@ -923,7 +969,7 @@ local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.new(1, -30, 0, 20),
 		Position = UDim2.fromOffset(15, 3),
 		BackgroundTransparency = 1,
-		Text = OptionSettings.Title or 'Default Name',
+		Text = OptionSettings.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = Pallet.Text,
 		TextSize = 12,
@@ -942,8 +988,8 @@ local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.new(1, -8, 1, 0),
 		Position = UDim2.fromOffset(8, 0),
 		BackgroundTransparency = 1,
-		Text = OptionSettings.Default or '',
-		PlaceholderText = OptionSettings.Placeholder or 'Click to set',
+		Text = OptionSettings.Default,
+		PlaceholderText = OptionSettings.Placeholder,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		PlaceholderColor3 = ColorDark(Pallet.Text, 0.31),
@@ -952,31 +998,40 @@ local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
 		ClearTextOnFocus = false,
 		Parent = Background
 	})
-
-	function OptionApi:SetValue(Val, Enter, Input)
+	if OptionSettings.Tooltip ~= "" then
+		AddTooltip(TextBox, OptionSettings.Tooltip, 1.5, true)
+	end
+	function OptionApi:SetValue(Val, Enter)
 		self.Value = Val
 		Box.Text = Val
-		if Enter and OptionSettings.Function then
-			OptionSettings.Function(Val)
-		end
 	end
 
 	TextBox.MouseButton1Click:Connect(function()
 		Box:CaptureFocus()
 	end)
-	Box.FocusLost:Connect(function(Enter, Input)
-		OptionApi:SetValue(Box.Text, Enter, Input)
+	Box.FocusLost:Connect(function(Enter)
+		OptionApi:SetValue(Box.Text, Enter)
+		if Enter then
+			OptionSettings.Function(Box.Text)
+		end
 	end)
 	Box:GetPropertyChangedSignal('Text'):Connect(function()
 		OptionApi:SetValue(Box.Text)
 	end)
 
 	OptionApi.Object = TextBox
-	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
+	Api.Options[OptionSettings.Name] = OptionApi
 	return OptionApi
 end
 
 local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
+	OptionSettings = OptionSettings or {}
+	OptionSettings = {
+		Name = OptionSettings.Name or "Default Name",
+		Default = OptionSettings.Default or nil,
+		Tooltip = OptionSettings.Tooltip or "",
+		Function = OptionSettings.Function or function(...) end
+	}
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Keybind',
@@ -985,12 +1040,11 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 	}
 
 	local Keybind = Make('TextButton', {
-		Name = (OptionSettings.Title or 'Default Name')..'Keybind',
+		Name = OptionSettings.Name..'Keybind',
 		Size = UDim2.new(1, 0, 0, 34),
 		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
 		Text = '',
 		Parent = Children
 	})
@@ -1000,7 +1054,7 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.new(1, -80, 0, 34),
 		Position = UDim2.fromOffset(10, 0),
 		BackgroundTransparency = 1,
-		Text = (OptionSettings.Title or 'Default Name'),
+		Text = OptionSettings.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 14,
@@ -1048,6 +1102,9 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 		Parent = BindBox
 	})
 
+	if OptionSettings.Tooltip ~= "" then
+		AddTooltip(Keybind, OptionSettings.Tooltip, 1.5, true)
+	end
 	local Listening = false
 	local KeybindConnection
 
@@ -1066,9 +1123,7 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 	local function OnKeybindPressed(Input, GameProcessed)
 		if GameProcessed then return end
 		if OptionApi.Value and Input.KeyCode == OptionApi.Value then
-			if OptionSettings.Function then
-				OptionSettings.Function()
-			end
+			OptionSettings.Function()
 		end
 	end
 
@@ -1096,9 +1151,15 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 	end
 
 	function OptionApi:SetValue(Val)
-		if Val and typeof(Val) ~= 'EnumItem' then return end
-		self.Value = Val
-		UpdateDisplay()
+		if not Val then return end
+		if typeof(Val) == "string" then
+			self.Value = Enum.KeyCode[Val]
+			UpdateDisplay()
+		end
+		if typeof(Val) == "EnumItem" then
+			self.Value = Val
+			UpdateDisplay()
+		end
 	end
 
 	function OptionApi:Clear()
@@ -1125,7 +1186,7 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 	KeybindConnection = UserInputService.InputBegan:Connect(OnKeybindPressed)
 
 	OptionApi.Object = Keybind
-	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
+	Api.Options[OptionSettings.Name] = OptionApi
 	return OptionApi
 end
 
@@ -1136,7 +1197,7 @@ local Components = {
 	Slider = CreateSlider,
 	Dropdown = CreateDropdown,
 	TextBox = CreateTextBox,
-	Keybind = CreateKeybind
+	Keybind = CreateKeybind,
 }
 
 local TabClass = {}
@@ -1166,6 +1227,7 @@ function TabClass:CreateKeybind(settings)
 	return Components.Keybind(settings, self.Children, self)
 end
 
+
 local ModuleClass = {}
 ModuleClass.__index = ModuleClass
 
@@ -1194,6 +1256,13 @@ function ModuleClass:CreateKeybind(settings)
 end
 
 function TabClass:CreateModule(Settings)
+	Settings = Settings or {}
+	Settings = {
+		Name = Settings.Name or "Default Name",
+		Tooltip = Settings.Tooltip or "",
+		Function = Settings.Function or function(...) end,
+
+	}
 	local Pallet = VapeLibrary.Internal.Pallet
 	local ParentTab = self
 
@@ -1201,8 +1270,7 @@ function TabClass:CreateModule(Settings)
 		Enabled = false,
 		Options = {},
 		Bind = {},
-		Name = Settings.Name,
-		ExtraText = Settings.ExtraText
+		Name = Settings.Name
 	}
 
 	local Hovered = false
@@ -1265,8 +1333,10 @@ function TabClass:CreateModule(Settings)
 		Visible = false,
 		Parent = ModuleButton
 	})
-	Settings.Function = Settings.Function or function() end
 	AddMaid(ModuleApi)
+	if Settings.Tooltip ~= "" then
+		AddTooltip(ModuleButton, Settings.Tooltip, 1.5, true)
+	end
 
 	function ModuleApi:Toggle(Multiple)
 		self.Enabled = not self.Enabled
@@ -1282,7 +1352,6 @@ function TabClass:CreateModule(Settings)
 			end
 			table.clear(self.Connections)
 		end
-		task.spawn(Settings.Function, self.Enabled)
 	end
 
 	DotsButton.MouseEnter:Connect(function()
@@ -1335,6 +1404,7 @@ function TabClass:CreateModule(Settings)
 	end)
 	ModuleButton.MouseButton1Click:Connect(function()
 		ModuleApi:Toggle()
+		task.spawn(Settings.Function, ModuleApi.Enabled)
 	end)
 	ModuleButton.MouseButton2Click:Connect(function()
 		if ModuleChildren.Visible then
@@ -1579,6 +1649,182 @@ function WindowClass:CreateTab(Settings)
 	return CategoryApi
 end
 
+function WindowClass:CreateNotification(NotificationSettings)
+	NotificationSettings = NotificationSettings or {}
+	local Settings = {
+		Title = NotificationSettings.Title or "Default Name",
+		Text = NotificationSettings.Text or "Default Text",
+		Type = NotificationSettings.Type or "info",
+		IsPinned = NotificationSettings.Pinned or false,
+		Duration = NotificationSettings.Duration or 2.5
+	}
+	if not VapeLibrary.Internal.NotificationFrame then return end
+	local Holder = VapeLibrary.Internal.NotificationFrame
+	local Pallet = VapeLibrary.Internal.Pallet
+
+	local Notification = Make("Frame", {
+		Name = Settings.Title,
+		Parent = Holder,
+		BackgroundColor3 = Pallet.Main,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 0)
+	}, {
+		MakeBlur(nil, true),
+		MakeOutline(nil, true),
+		MakeCorner(),
+		Make("ImageLabel", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(0, 74, 0, 74),
+			Position = UDim2.new(0, -18, 0, -18),
+			Image = GetAsset(Settings.Type .. ".png"),
+		}),
+		Make("TextLabel", {
+			Size = UDim2.new(1, -44, 0, 28),
+			Position = UDim2.new(0, 36, 0, 6),
+			BackgroundTransparency = 1,
+			Text = Settings.Title,
+			TextSize = 16,
+			FontFace = Pallet.Font,
+			TextColor3 = Pallet.Text,
+			Name = "Title",
+			TextXAlignment = Enum.TextXAlignment.Left
+		}),
+		Make("Frame", {
+			Size = UDim2.new(1, -16, 0, 1),
+			Position = UDim2.new(0, 8, 0, 36),
+			BackgroundTransparency = 0.65,
+		BackgroundColor3 = Pallet.Outline,
+		BorderSizePixel = 0
+	}),
+	Make("TextLabel", {
+		Name = "Text",
+			Size = UDim2.new(1, -16, 1, -48),
+			Position = UDim2.new(0, 8, 0, 44),
+			BackgroundTransparency = 1,
+			Text = Settings.Text,
+			TextSize = 14,
+			FontFace = Pallet.Font,
+			TextColor3 = Pallet.Text,
+			TextXAlignment = Enum.TextXAlignment.Left
+		}),
+		Make("ImageLabel", {
+			Name = "Pin",
+			Image = GetAsset("pin.png"),
+			Size = UDim2.new(0, 16, 0, 16),
+			Position = UDim2.new(1, -48, 0, 10),
+			BackgroundTransparency = 1,
+			ImageTransparency = 0.4,
+			Visible = Settings.IsPinned,
+		}),
+		Make("TextLabel", {
+			Name = "Time",
+			Size = UDim2.new(0, 16, 0, 16),
+			Position = UDim2.new(1, -48, 0, 10),
+			BackgroundTransparency = 1,
+			Text = "<b>" .. Settings.Duration .. "</b>",
+			TextSize = 14,
+			RichText = true,
+			FontFace = Pallet.Font,
+			TextColor3 = Pallet.Text,
+			Visible = not Settings.IsPinned,
+		}),
+		Make("ImageButton", {
+			Name = "Close",
+			Image = GetAsset("close.png"),
+			Size = UDim2.new(0, 32, 0, 32),
+			Position = UDim2.new(1, -34, 0, 2),
+			BackgroundTransparency = 1,
+			ImageTransparency = 0.4,
+		})
+	})
+
+	local Size = GetTextSize(Settings.Text, Pallet.Font, Notification.AbsoluteSize.X - 16, 14)
+	Notification.Text.Size = UDim2.new(1, -16, 0, Size.Y)
+	Tween(Notification, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 60 + Size.Y), BackgroundTransparency = 0.15})
+
+	local Closed = false
+	local Hovered = IsMouseInFrame(Notification)
+
+	local CloseTween = TweenService:Create(Notification, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1})
+
+	CloseTween.Completed:Once(function()
+		Notification:Destroy()
+	end)
+
+	local NotificationApi = {
+		Object = Notification
+	}
+
+	function NotificationApi:Dismiss()
+		if Closed then return end
+		Closed = true
+		CloseTween:Play()
+	end
+
+	Notification.Close.MouseButton1Click:Connect(function()
+		NotificationApi:Dismiss()
+	end)
+
+	if not Settings.IsPinned then
+		local Remaining = Settings.Duration
+		local TimeLabel = Notification.Time
+
+		Notification.MouseEnter:Connect(function() Hovered = true end)
+		Notification.MouseLeave:Connect(function() Hovered = false end)
+
+		while true do
+			task.wait(0.1)
+
+			if Closed then
+				break
+			end
+
+			if not Hovered then
+				Remaining -= 0.1
+				TimeLabel.Text = string.format("<b>%.1f</b>", Remaining)
+			end
+
+			if Remaining <= 0 then
+				break
+			end
+		end
+
+		if not Closed then
+			NotificationApi:Dismiss()
+		end
+	end
+
+	return NotificationApi
+end
+
+function WindowClass:SetKeybind(NewKey)
+	if typeof(NewKey) == "string" then
+		VapeLibrary.Internal.ToggleKeybind = Enum.KeyCode[NewKey]
+	end
+	if typeof(NewKey) == "EnumItem" then
+		VapeLibrary.Internal.ToggleKeybind = NewKey
+	end
+	return self
+end
+
+function WindowClass:OpenGui()
+	VapeLibrary.Internal.ClickGui.Visible = true
+	if VapeLibrary.Internal.BlurType == 'Blur' then
+		VapeLibrary.Internal.Blur.Enabled = VapeLibrary.Internal.ClickGui.Visible
+	else
+		RunService:SetRobloxGuiFocused(VapeLibrary.Internal.ClickGui.Visible)
+	end
+end
+
+function WindowClass:CloseGui()
+	VapeLibrary.Internal.ClickGui.Visible = false
+	if VapeLibrary.Internal.BlurType == 'Blur' then
+		VapeLibrary.Internal.Blur.Enabled = VapeLibrary.Internal.ClickGui.Visible
+	else
+		RunService:SetRobloxGuiFocused(VapeLibrary.Internal.ClickGui.Visible)
+	end
+end
+
 function VapeLibrary:CreateWindow()
 	local Pallet = VapeLibrary.Internal.Pallet
 	VapeLibrary.Internal.ScreenGui = Instance.new("ScreenGui", gethui and gethui() or CloneRef(game:GetService("Players")).LocalPlayer.PlayerGui)
@@ -1731,154 +1977,3 @@ function VapeLibrary:CreateWindow()
 
 	return WindowApi
 end
-
-function VapeLibrary:CreateNotification(NotificationSettings)
-	NotificationSettings = NotificationSettings or {}
-	local Settings = {
-		Title = NotificationSettings.Title or "Default Name",
-		Text = NotificationSettings.Text or "Default Text",
-		Type = NotificationSettings.Type or "info",
-		IsPinned = NotificationSettings.Pinned or false,
-		Duration = NotificationSettings.Duration or 2.5
-	}
-	if not VapeLibrary.Internal.NotificationFrame then return end
-	local Holder = VapeLibrary.Internal.NotificationFrame
-	local Pallet = VapeLibrary.Internal.Pallet
-
-	local Notification = Make("Frame", {
-		Name = Settings.Title,
-		Parent = Holder,
-		BackgroundColor3 = Pallet.Main,
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 0)
-	}, {
-		MakeBlur(nil, true),
-		MakeOutline(nil, true),
-		MakeCorner(),
-		Make("ImageLabel", {
-			BackgroundTransparency = 1,
-			Size = UDim2.new(0, 74, 0, 74),
-			Position = UDim2.new(0, -18, 0, -18),
-			Image = GetAsset(Settings.Type .. ".png"),
-		}),
-		Make("TextLabel", {
-			Size = UDim2.new(1, -44, 0, 28),
-			Position = UDim2.new(0, 36, 0, 6),
-			BackgroundTransparency = 1,
-			Text = Settings.Title,
-			TextSize = 16,
-			FontFace = Pallet.Font,
-			TextColor3 = Pallet.Text,
-			Name = "Title",
-			TextXAlignment = Enum.TextXAlignment.Left
-		}),
-		Make("Frame", {
-			Size = UDim2.new(1, -16, 0, 1),
-			Position = UDim2.new(0, 8, 0, 36),
-			BackgroundTransparency = 0.65,
-		BackgroundColor3 = Pallet.Outline,
-		BorderSizePixel = 0
-	}),
-	Make("TextLabel", {
-		Name = "Text",
-			Size = UDim2.new(1, -16, 1, -48),
-			Position = UDim2.new(0, 8, 0, 44),
-			BackgroundTransparency = 1,
-			Text = Settings.Text,
-			TextSize = 14,
-			FontFace = Pallet.Font,
-			TextColor3 = Pallet.Text,
-			TextXAlignment = Enum.TextXAlignment.Left
-		}),
-		Make("ImageLabel", {
-			Name = "Pin",
-			Image = GetAsset("pin.png"),
-			Size = UDim2.new(0, 16, 0, 16),
-			Position = UDim2.new(1, -48, 0, 10),
-			BackgroundTransparency = 1,
-			ImageTransparency = 0.4,
-			Visible = Settings.IsPinned,
-		}),
-		Make("TextLabel", {
-			Name = "Time",
-			Size = UDim2.new(0, 16, 0, 16),
-			Position = UDim2.new(1, -48, 0, 10),
-			BackgroundTransparency = 1,
-			Text = "<b>" .. Settings.Duration .. "</b>",
-			TextSize = 14,
-			RichText = true,
-			FontFace = Pallet.Font,
-			TextColor3 = Pallet.Text,
-			Visible = not Settings.IsPinned,
-		}),
-		Make("ImageButton", {
-			Name = "Close",
-			Image = GetAsset("close.png"),
-			Size = UDim2.new(0, 32, 0, 32),
-			Position = UDim2.new(1, -34, 0, 2),
-			BackgroundTransparency = 1,
-			ImageTransparency = 0.4,
-		})
-	})
-
-	local Size = GetTextSize(Settings.Text, Pallet.Font, Notification.AbsoluteSize.X - 16, 14)
-	Notification.Text.Size = UDim2.new(1, -16, 0, Size.Y)
-	Tween(Notification, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 60 + Size.Y), BackgroundTransparency = 0.15})
-
-	local Closed = false
-	local Hovered = IsMouseInFrame(Notification)
-
-	local CloseTween = TweenService:Create(Notification, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1})
-
-	CloseTween.Completed:Once(function()
-		Notification:Destroy()
-	end)
-
-	local NotificationApi = {
-		Object = Notification
-	}
-
-	function NotificationApi:Dismiss()
-		if Closed then return end
-		Closed = true
-		CloseTween:Play()
-	end
-
-	Notification.Close.MouseButton1Click:Connect(function()
-		NotificationApi:Dismiss()
-	end)
-
-	if not Settings.IsPinned then
-		local Remaining = Settings.Duration
-		local TimeLabel = Notification.Time
-
-		Notification.MouseEnter:Connect(function() Hovered = true end)
-		Notification.MouseLeave:Connect(function() Hovered = false end)
-
-		while true do
-			task.wait(0.1)
-
-			if Closed then
-				break
-			end
-
-			if not Hovered then
-				Remaining -= 0.1
-				TimeLabel.Text = string.format("<b>%.1f</b>", Remaining)
-			end
-
-			if Remaining <= 0 then
-				break
-			end
-		end
-
-		if not Closed then
-			NotificationApi:Dismiss()
-		end
-	end
-
-	return NotificationApi
-end
-
-
-return VapeLibrary
