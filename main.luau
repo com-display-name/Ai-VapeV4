@@ -82,7 +82,7 @@ local function IsMouseInFrame(Frame)
 	local Mouse = Players.LocalPlayer:GetMouse()
 	local Pos = Vector2.new(Mouse.X, Mouse.Y)
 
-	local IsInX = Frame.AbsolutePosition.X <= Pos.X and Pos.Y <= (Frame.AbsolutePosition.X + Frame.AbsoluteSize.X)
+	local IsInX = Frame.AbsolutePosition.X <= Pos.X and Pos.X <= (Frame.AbsolutePosition.X + Frame.AbsoluteSize.X)
 	local IsInY = Frame.AbsolutePosition.Y <= Pos.Y and Pos.Y <= (Frame.AbsolutePosition.Y + Frame.AbsoluteSize.Y)
 
 	return IsInX and IsInY
@@ -100,12 +100,13 @@ local function Make(ClassName, Properties, Children)
 	return Instance
 end
 
-local function GetTextSize(Text, Font, MaxWidth, FontSize)
+local function GetTextSize(Text, Font, MaxWidth, FontSize, RichText)
 	if not (Text and Font and MaxWidth and FontSize) then return Vector2.new(0, 0) end
 	local TextBounds = Make("GetTextBoundsParams", {
 		Parent = nil,
 		Width = MaxWidth or math.huge,
 		Size = FontSize or 16,
+		RichText = RichText or false,
 		Text = Text,
 		Font = Font
 	})
@@ -265,6 +266,16 @@ local function GetTableSize(Table)
 	return Count
 end
 
+local function SanitizeKey(Key : Enum.KeyCode | string)
+    local keyString = typeof(Key) == "EnumItem" and Key.Name or Key
+
+    if typeof(keyString) == "string" then
+        return (keyString:gsub("(%l)(%u)", "%1 %2"))
+    end
+
+    return nil
+end
+
 local function AddMaid(Object)
 	Object.Connections = {}
 	function Object:Clean(Callback)
@@ -290,6 +301,12 @@ local function AddMaid(Object)
 		table.clear(self.Connections)
 	end
 end
+
+
+
+
+
+
 
 local function CreateToggle(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
@@ -545,7 +562,8 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 	end
 
 	function OptionApi:SetValue(Value, Position, Final)
-		if tonumber(Value) == math.huge or Value ~= Value then return end
+		if type(Value) ~= 'number' or Value ~= Value then return end
+		Value = math.clamp(Value, OptionSettings.Min, OptionSettings.Max)
 		local Check = self.Value ~= Value
 		self.Value = Value
 		Tween(Fill, Pallet.Tween, {
@@ -606,7 +624,8 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 		ValueButton.Visible = true
 		ValueBox.Visible = false
 		if Enter and tonumber(ValueBox.Text) then
-			OptionApi:SetValue(tonumber(ValueBox.Text), nil, true)
+			local Clamped = math.clamp(tonumber(ValueBox.Text), OptionSettings.Min, OptionSettings.Max)
+			OptionApi:SetValue(math.floor(Clamped * IncrementValue) / IncrementValue, nil, true)
 		end
 	end)
 
@@ -653,6 +672,7 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.new(1, -20, 0, 26),
 		Position = UDim2.fromOffset(10, 24),
 		BackgroundColor3 = ColorLight(Pallet.Main, 0.034),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = Dropdown
 	})
 	MakeCorner(Background, UDim.new(0, 6))
@@ -696,6 +716,7 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 		Parent = Button
 	})
 	local DropdownChildren
+	local Padding
 	local OptionButtons = {}
 	local OutsideClickConnection
 
@@ -718,7 +739,9 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 
 	local function CloseDropdown()
 		if DropdownChildren then
-			Arrow.Rotation = 90
+			Padding:Destroy()
+			DisplayLabel.Visible = true
+			Arrow.Visible = true
 			DropdownChildren:Destroy()
 			DropdownChildren = nil
 			OptionButtons = {}
@@ -731,14 +754,19 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 	end
 
 	local function OpenDropdown()
-		Arrow.Rotation = 270
+		Arrow.Visible = false
+		DisplayLabel.Visible = false
+		Padding = Make("UIPadding", {
+			PaddingBottom = UDim.new(0, 4),
+			Parent = Button
+		})
 		Dropdown.Size = UDim2.new(1, 0, 0, 54 + (#OptionsList) * 26)
 		DropdownChildren = Make('Frame', {
 			Name = 'Children',
-			Size = UDim2.new(1, 0, 0, (#OptionsList) * 26),
-			Position = UDim2.fromOffset(0, 51),
+			Size = UDim2.new(1, -8, 0, (#OptionsList) * 26),
+			Position = UDim2.fromOffset(4, 4),
 			BackgroundTransparency = 1,
-			Parent = Dropdown
+			Parent = Button
 		})
 		local Index = 0
 		for _, V in OptionsList do
@@ -757,6 +785,8 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				FontFace = Pallet.Font,
 				Parent = DropdownChildren
+			}, {
+				MakeCorner()
 			})
 			OptionButtons[V] = DropdownOption
 			DropdownOption.MouseEnter:Connect(function()
@@ -775,23 +805,21 @@ local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 			Index += 1
 		end
 
-		if OptionSettings.AllowMultiple then
-			if OutsideClickConnection then
-				OutsideClickConnection:Disconnect()
-			end
-			OutsideClickConnection = UserInputService.InputBegan:Connect(function(Input, GameProcessed)
-				if GameProcessed then return end
-				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-					local AbsPos = Dropdown.AbsolutePosition
-					local AbsSize = Dropdown.AbsoluteSize
-					local ClickX = Input.Position.X
-					local ClickY = Input.Position.Y
-					if ClickX < AbsPos.X or ClickX > AbsPos.X + AbsSize.X or ClickY < AbsPos.Y or ClickY > AbsPos.Y + AbsSize.Y then
-						CloseDropdown()
-					end
-				end
-			end)
+		if OutsideClickConnection then
+			OutsideClickConnection:Disconnect()
 		end
+		OutsideClickConnection = UserInputService.InputBegan:Connect(function(Input, GameProcessed)
+			if GameProcessed then return end
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				local AbsPos = Dropdown.AbsolutePosition
+				local AbsSize = Dropdown.AbsoluteSize
+				local ClickX = Input.Position.X
+				local ClickY = Input.Position.Y
+				if ClickX < AbsPos.X or ClickX > AbsPos.X + AbsSize.X or ClickY < AbsPos.Y or ClickY > AbsPos.Y + AbsSize.Y then
+					CloseDropdown()
+				end
+			end
+		end)
 	end
 
 	local function UpdateTitle()
@@ -878,7 +906,7 @@ local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
 	local OptionApi = {
 		Type = 'TextBox',
 		Value = OptionSettings.Default or '',
-		Index = 0
+		Index = GetTableSize(Api.Options)
 	}
 
 	local TextBox = Make('TextButton', {
@@ -948,58 +976,6 @@ local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
 	return OptionApi
 end
 
-local function CreateLabel(OptionSettings, Children, Api, IsModuleElement)
-	local Pallet = VapeLibrary.Internal.Pallet
-	local OptionApi = {
-		Type = 'Label',
-		Name = OptionSettings.Title or 'Default Name',
-		Index = 0
-	}
-
-	local Frame = Make('Frame', {
-		Name = (OptionSettings.Title or 'Default Name')..'Label',
-		Size = UDim2.new(1, 0, 0, 32),
-		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
-		BorderSizePixel = 0,
-		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
-		Parent = Children
-	})
-
-	local TextLabel = Make('TextLabel', {
-		Name = 'Text',
-		Size = UDim2.new(1, -16, 1, -6),
-		Position = UDim2.fromOffset(10, 3),
-		BackgroundTransparency = 1,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		TextColor3 = Pallet.Text,
-		TextSize = 12,
-		FontFace = Pallet.Font,
-		RichText = OptionSettings.RichText or false,
-		TextWrapped = true,
-		Text = OptionApi.Name,
-		Parent = Frame
-	})
-
-	local function UpdateSize()
-		local TextSize = GetTextSize(TextLabel.Text, TextLabel.FontFace, TextLabel.AbsoluteSize.X, TextLabel.TextSize)
-		local NewY = math.max(32, TextSize.Y + 10)
-		Frame.Size = UDim2.new(1, 0, 0, NewY)
-	end
-
-	TextLabel:GetPropertyChangedSignal('Text'):Connect(UpdateSize)
-	UpdateSize()
-
-	function OptionApi:SetValue(Val)
-		self.Value = Val
-		TextLabel.Text = Val
-	end
-
-	OptionApi.Object = Frame
-	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
-	return OptionApi
-end
-
 local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
@@ -1034,12 +1010,17 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 
 	local BindBox = Make('TextButton', {
 		Name = 'BindBox',
-		Size = UDim2.fromOffset(24, 24),
-		Position = UDim2.new(1, -34, 0, 5),
+		Size = UDim2.new(0, GetTextSize(OptionApi.Value and OptionApi.Value.Name and SanitizeKey(OptionApi.Value.Name) or "None", Pallet.Font, math.huge, 12).X + 8, 0, 24),
+		AnchorPoint = Vector2.new(1,0),
+		Position = UDim2.new(1, -8, 0, 5),
 		BackgroundColor3 = ColorLight(Pallet.Main, 0.05),
 		Text = '',
 		AutoButtonColor = false,
 		Parent = Keybind
+	}, {
+		Make("UISizeConstraint", {
+			MinSize = Vector2.new(24,0)
+		})
 	})
 	MakeCorner(BindBox, UDim.new(0, 4))
 
@@ -1059,7 +1040,7 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.new(1, -8, 1, 0),
 		Position = UDim2.fromOffset(4, 0),
 		BackgroundTransparency = 1,
-		Text = OptionApi.Value and OptionApi.Value.Name or 'None',
+		Text = OptionApi.Value and OptionApi.Value.Name and SanitizeKey(OptionApi.Value.Name) or 'None',
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 12,
@@ -1072,7 +1053,8 @@ local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 
 	local function UpdateDisplay()
 		if OptionApi.Value then
-			BindLabel.Text = OptionApi.Value.Name
+			BindBox.Size = UDim2.new(0, GetTextSize(SanitizeKey(OptionApi.Value.Name), Pallet.Font, math.huge, 12).X + 8, 0, 24)
+			BindLabel.Text = SanitizeKey(OptionApi.Value.Name)
 			BindLabel.Visible = true
 			BindIcon.Visible = false
 		else
@@ -1154,7 +1136,6 @@ local Components = {
 	Slider = CreateSlider,
 	Dropdown = CreateDropdown,
 	TextBox = CreateTextBox,
-	Label = CreateLabel,
 	Keybind = CreateKeybind
 }
 
@@ -1179,10 +1160,6 @@ end
 
 function TabClass:CreateTextBox(settings)
 	return Components.TextBox(settings, self.Children, self)
-end
-
-function TabClass:CreateLabel(settings)
-	return Components.Label(settings, self.Children, self)
 end
 
 function TabClass:CreateKeybind(settings)
@@ -1214,10 +1191,6 @@ end
 
 function ModuleClass:CreateKeybind(settings)
 	return Components.Keybind(settings, self.Children, self, true)
-end
-
-function ModuleClass:CreateLabel(settings)
-	return Components.Label(settings, self.Children, self, true)
 end
 
 function TabClass:CreateModule(Settings)
