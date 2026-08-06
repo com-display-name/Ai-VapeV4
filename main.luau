@@ -9,6 +9,13 @@ local VapeLibrary = {
 			Module = Color3.fromRGB(31, 29, 31),
 			ModuleLight = Color3.fromRGB(37, 35, 37),
 			Text = Color3.fromRGB(200, 200, 200),
+			Accent = Color3.fromRGB(5, 132, 102),
+			Outline = Color3.fromRGB(131, 131, 131),
+			OutlineBright = Color3.fromRGB(190, 190, 190),
+			Divider = Color3.new(0.19, 0.19, 0.19),
+			DividerLight = Color3.new(1, 1, 1),
+			IconGray = Color3.fromRGB(140, 140, 140),
+			IconHover = Color3.fromRGB(220, 220, 220),
 			Font = Font.fromEnum(Enum.Font.Arial),
 			Tween = TweenInfo.new(0.16, Enum.EasingStyle.Linear),
 			GUIColor = {
@@ -30,13 +37,13 @@ local VapeLibrary = {
 }
 
 local CloneRef = cloneref or function(...) return ... end
-local GetGenv = getgenv or function() return _G end
 
 local TweenService = CloneRef(game:GetService('TweenService'))
 local UserInputService = CloneRef(game:GetService('UserInputService'))
 local TextService = CloneRef(game:GetService('TextService'))
 local GuiService = CloneRef(game:GetService('GuiService'))
 local RunService = CloneRef(game:GetService('RunService'))
+local Players = CloneRef(game:GetService("Players"))
 
 local Assets = {
 	['arrowmodule.png'] = 'rbxassetid://14473354880',
@@ -70,6 +77,17 @@ local Assets = {
 	["info.png"] = "rbxassetid://14368324807",
 	["pin.png"] = "rbxassetid://14368342301"
 }
+
+local function IsMouseInFrame(Frame)
+	local Mouse = Players.LocalPlayer:GetMouse()
+	local Pos = Vector2.new(Mouse.X, Mouse.Y)
+
+	local IsInX = Frame.AbsolutePosition.X <= Pos.X and Pos.Y <= (Frame.AbsolutePosition.X + Frame.AbsoluteSize.X)
+	local IsInY = Frame.AbsolutePosition.Y <= Pos.Y and Pos.Y <= (Frame.AbsolutePosition.Y + Frame.AbsoluteSize.Y)
+
+	return IsInX and IsInY
+
+end
 
 local function Make(ClassName, Properties, Children)
 	local Instance = Instance.new(ClassName)
@@ -148,7 +166,7 @@ end
 local function MakeOutline(Parent, MakeBright)
 	return Make("UIStroke", {
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Color = MakeBright and Color3.fromRGB(190, 190, 190) or Color3.fromRGB(131, 131, 131),
+		Color = MakeBright and VapeLibrary.Internal.Pallet.OutlineBright or VapeLibrary.Internal.Pallet.Outline,
 		Transparency = MakeBright and 0.75 or 0,
 		Parent = Parent
 	})
@@ -265,9 +283,15 @@ local function AddMaid(Object)
 			table.insert(self.Connections, Callback)
 		end
 	end
+	function Object:CleanAll()
+		for _, Connection in self.Connections do
+			Connection:Disconnect()
+		end
+		table.clear(self.Connections)
+	end
 end
 
-local function CreateToggle(OptionSettings, Children, Api)
+local function CreateToggle(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Toggle',
@@ -279,7 +303,7 @@ local function CreateToggle(OptionSettings, Children, Api)
 	local ToggleButton = Make('TextButton', {
 		Name = (OptionSettings.Title or 'Default Name')..'Toggle',
 		Size = UDim2.new(1, 0, 0, 30),
-		BackgroundColor3 = Pallet.Module,
+		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
@@ -321,6 +345,16 @@ local function CreateToggle(OptionSettings, Children, Api)
 		end
 	end
 
+	function OptionApi:SetValue(Val)
+		if type(Val) ~= 'boolean' then return end
+		if self.Enabled ~= Val then
+			InternalToggle()
+		end
+		if OptionSettings.Function then
+			OptionSettings.Function(Val)
+		end
+	end
+
 	ToggleButton.MouseEnter:Connect(function()
 		Hovered = true
 		if not OptionApi.Enabled then
@@ -349,12 +383,17 @@ local function CreateToggle(OptionSettings, Children, Api)
 	return OptionApi
 end
 
-local function CreateButton(OptionSettings, Children, Api)
+local function CreateButton(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
+	local OptionApi = {
+		Type = 'Button',
+		Index = GetTableSize(Api.Options)
+	}
+
 	local Button = Make('TextButton', {
 		Name = (OptionSettings.Title or 'Default Name')..'Button',
 		Size = UDim2.new(1, 0, 0, 31),
-		BackgroundColor3 = Pallet.Module,
+		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
@@ -380,6 +419,12 @@ local function CreateButton(OptionSettings, Children, Api)
 	})
 	MakeCorner(Label, UDim.new(0, 4))
 
+	function OptionApi:Click()
+		if OptionSettings.Function then
+			OptionSettings.Function()
+		end
+	end
+
 	Button.MouseEnter:Connect(function()
 		Tween(Background, Pallet.Tween, {
 			BackgroundColor3 = ColorLight(Pallet.Main, 0.0875)
@@ -391,15 +436,15 @@ local function CreateButton(OptionSettings, Children, Api)
 		})
 	end)
 	Button.MouseButton1Click:Connect(function()
-		if OptionSettings.Function then
-			OptionSettings.Function()
-		end
+		OptionApi:Click()
 	end)
 
-	return Button
+	OptionApi.Object = Button
+	Api.Options[OptionSettings.Title or 'Default Name'] = OptionApi
+	return OptionApi
 end
 
-local function CreateSlider(OptionSettings, Children, Api)
+local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Slider',
@@ -411,7 +456,7 @@ local function CreateSlider(OptionSettings, Children, Api)
 	local Slider = Make('TextButton', {
 		Name = (OptionSettings.Title or 'Default Name')..'Slider',
 		Size = UDim2.new(1, 0, 0, 50),
-		BackgroundColor3 = Pallet.Module,
+		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
@@ -570,7 +615,7 @@ local function CreateSlider(OptionSettings, Children, Api)
 	return OptionApi
 end
 
-local function CreateDropdown(OptionSettings, Children, Api)
+local function CreateDropdown(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionsList = OptionSettings.Options or {"Option 1", "Option 2"}
 	local OptionApi = {
@@ -582,7 +627,7 @@ local function CreateDropdown(OptionSettings, Children, Api)
 	local Dropdown = Make('TextButton', {
 		Name = (OptionSettings.Title or 'Default Name')..'Dropdown',
 		Size = UDim2.new(1, 0, 0, 54),
-		BackgroundColor3 = Pallet.Module,
+		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
@@ -646,7 +691,7 @@ local function CreateDropdown(OptionSettings, Children, Api)
 		Position = UDim2.new(1, -14, 0, 9),
 		BackgroundTransparency = 1,
 		Image = GetAsset('expandright.png'),
-		ImageColor3 = Color3.fromRGB(140, 140, 140),
+		ImageColor3 = Pallet.IconGray,
 		Rotation = 90,
 		Parent = Button
 	})
@@ -786,6 +831,25 @@ local function CreateDropdown(OptionSettings, Children, Api)
 		end
 	end
 
+	function OptionApi:UpdateOptions(NewOptions)
+		OptionsList = NewOptions
+		CloseDropdown()
+		if OptionSettings.AllowMultiple then
+			local Cleaned = {}
+			for _, V in self.Value do
+				if table.find(OptionsList, V) then
+					table.insert(Cleaned, V)
+				end
+			end
+			self.Value = Cleaned
+		else
+			if not table.find(OptionsList, self.Value) then
+				self.Value = OptionsList[1] or 'None'
+			end
+		end
+		UpdateTitle()
+	end
+
 	Button.MouseButton1Click:Connect(function()
 		if DropdownChildren then
 			CloseDropdown()
@@ -809,7 +873,7 @@ local function CreateDropdown(OptionSettings, Children, Api)
 	return OptionApi
 end
 
-local function CreateTextBox(OptionSettings, Children, Api)
+local function CreateTextBox(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'TextBox',
@@ -820,7 +884,7 @@ local function CreateTextBox(OptionSettings, Children, Api)
 	local TextBox = Make('TextButton', {
 		Name = (OptionSettings.Title or 'Default Name')..'TextBox',
 		Size = UDim2.new(1, 0, 0, 58),
-		BackgroundColor3 = Pallet.Module,
+		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
@@ -884,33 +948,7 @@ local function CreateTextBox(OptionSettings, Children, Api)
 	return OptionApi
 end
 
-local function CreateDivider(Children, Text)
-	local Pallet = VapeLibrary.Internal.Pallet
-	local Divider = Make('Frame', {
-		Name = 'Divider',
-		Size = UDim2.new(1, 0, 0, 1),
-		BackgroundColor3 = ColorLight(Pallet.Main, 0.02),
-		BorderSizePixel = 0,
-		Parent = Children
-	})
-	if Text then
-		local Label = Make('TextLabel', {
-			Name = 'DividerLabel',
-			Size = UDim2.fromOffset(218, 27),
-			BackgroundTransparency = 1,
-			Text = '     '..Text:upper(),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = ColorDark(Pallet.Text, 0.43),
-			TextSize = 9,
-			FontFace = Pallet.Font,
-			Parent = Children
-		})
-		Divider.Position = UDim2.fromOffset(0, 26)
-		Divider.Parent = Label
-	end
-end
-
-local function CreateLabel(OptionSettings, Children, Api)
+local function CreateLabel(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Label',
@@ -921,7 +959,7 @@ local function CreateLabel(OptionSettings, Children, Api)
 	local Frame = Make('Frame', {
 		Name = (OptionSettings.Title or 'Default Name')..'Label',
 		Size = UDim2.new(1, 0, 0, 32),
-		BackgroundColor3 = Pallet.Module,
+		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
 		Parent = Children
@@ -962,7 +1000,7 @@ local function CreateLabel(OptionSettings, Children, Api)
 	return OptionApi
 end
 
-local function CreateKeybind(OptionSettings, Children, Api)
+local function CreateKeybind(OptionSettings, Children, Api, IsModuleElement)
 	local Pallet = VapeLibrary.Internal.Pallet
 	local OptionApi = {
 		Type = 'Keybind',
@@ -973,7 +1011,7 @@ local function CreateKeybind(OptionSettings, Children, Api)
 	local Keybind = Make('TextButton', {
 		Name = (OptionSettings.Title or 'Default Name')..'Keybind',
 		Size = UDim2.new(1, 0, 0, 34),
-		BackgroundColor3 = Pallet.Module,
+		BackgroundColor3 = IsModuleElement and Pallet.Main or Pallet.Module,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Visible = OptionSettings.Visible == nil or OptionSettings.Visible,
@@ -1076,7 +1114,13 @@ local function CreateKeybind(OptionSettings, Children, Api)
 	end
 
 	function OptionApi:SetValue(Val)
+		if Val and typeof(Val) ~= 'EnumItem' then return end
 		self.Value = Val
+		UpdateDisplay()
+	end
+
+	function OptionApi:Clear()
+		self.Value = nil
 		UpdateDisplay()
 	end
 
@@ -1110,7 +1154,6 @@ local Components = {
 	Slider = CreateSlider,
 	Dropdown = CreateDropdown,
 	TextBox = CreateTextBox,
-	Divider = CreateDivider,
 	Label = CreateLabel,
 	Keybind = CreateKeybind
 }
@@ -1150,31 +1193,31 @@ local ModuleClass = {}
 ModuleClass.__index = ModuleClass
 
 function ModuleClass:CreateToggle(settings)
-	return Components.Toggle(settings, self.Children, self)
+	return Components.Toggle(settings, self.Children, self, true)
 end
 
 function ModuleClass:CreateButton(settings)
-	return Components.Button(settings, self.Children, self)
+	return Components.Button(settings, self.Children, self, true)
 end
 
 function ModuleClass:CreateSlider(settings)
-	return Components.Slider(settings, self.Children, self)
+	return Components.Slider(settings, self.Children, self, true)
 end
 
 function ModuleClass:CreateDropdown(settings)
-	return Components.Dropdown(settings, self.Children, self)
+	return Components.Dropdown(settings, self.Children, self, true)
 end
 
 function ModuleClass:CreateTextBox(settings)
-	return Components.TextBox(settings, self.Children, self)
+	return Components.TextBox(settings, self.Children, self, true)
 end
 
 function ModuleClass:CreateKeybind(settings)
-	return Components.Keybind(settings, self.Children, self)
+	return Components.Keybind(settings, self.Children, self, true)
 end
 
 function ModuleClass:CreateLabel(settings)
-	return Components.Label(settings, self.Children, self)
+	return Components.Label(settings, self.Children, self, true)
 end
 
 function TabClass:CreateModule(Settings)
@@ -1243,7 +1286,7 @@ function TabClass:CreateModule(Settings)
 		Name = 'Divider',
 		Size = UDim2.new(1, 0, 0, 1),
 		Position = UDim2.new(0, 0, 1, -1),
-		BackgroundColor3 = Color3.new(0.19, 0.19, 0.19),
+		BackgroundColor3 = Pallet.Divider,
 		BackgroundTransparency = 0.52,
 		BorderSizePixel = 0,
 		Visible = false,
@@ -1258,7 +1301,7 @@ function TabClass:CreateModule(Settings)
 		Gradient.Enabled = self.Enabled
 		ModuleButton.TextColor3 = (Hovered or ModuleChildren.Visible) and Pallet.Text or (self.Enabled and ColorLight(Pallet.Text, 0.1) or ColorDark(Pallet.Text, 0.16))
 		Dots.ImageColor3 = self.Enabled and ColorLight(Pallet.Text, 0.1) or ColorLight(Pallet.Module, 0.37)
-		local BaseColor = self.Enabled and Color3.fromRGB(5, 132, 102) or Pallet.Module
+		local BaseColor = self.Enabled and Pallet.Accent or Pallet.Module
 		ModuleButton.BackgroundColor3 = (Hovered or ModuleChildren.Visible) and ColorLight(BaseColor, 0.02) or BaseColor
 		if not self.Enabled then
 			for _, V in self.Connections do
@@ -1304,7 +1347,7 @@ function TabClass:CreateModule(Settings)
 	ModuleButton.MouseEnter:Connect(function()
 		Hovered = true
 		if not ModuleChildren.Visible then
-			local BaseColor = ModuleApi.Enabled and Color3.fromRGB(5, 132, 102) or Pallet.Module
+			local BaseColor = ModuleApi.Enabled and Pallet.Accent or Pallet.Module
 			ModuleButton.TextColor3 = Pallet.Text
 			ModuleButton.BackgroundColor3 = ColorLight(BaseColor, 0.02)
 		end
@@ -1312,7 +1355,7 @@ function TabClass:CreateModule(Settings)
 	ModuleButton.MouseLeave:Connect(function()
 		Hovered = false
 		if not ModuleChildren.Visible then
-			local BaseColor = ModuleApi.Enabled and Color3.fromRGB(5, 132, 102) or Pallet.Module
+			local BaseColor = ModuleApi.Enabled and Pallet.Accent or Pallet.Module
 			ModuleButton.TextColor3 = ModuleApi.Enabled and ColorLight(Pallet.Text, 0.1) or ColorDark(Pallet.Text, 0.16)
 			ModuleButton.BackgroundColor3 = BaseColor
 		end
@@ -1403,7 +1446,7 @@ function WindowClass:CreateTab(Settings)
 		Position = UDim2.fromOffset(20, 18),
 		BackgroundTransparency = 1,
 		Image = GetAsset('expandup.png'),
-		ImageColor3 = Color3.fromRGB(140, 140, 140),
+		ImageColor3 = Pallet.IconGray,
 		Rotation = 180,
 		Parent = ArrowButton
 	})
@@ -1411,7 +1454,8 @@ function WindowClass:CreateTab(Settings)
 		Name = 'Children',
 		Size = UDim2.new(1, 0, 1, -41),
 		Position = UDim2.fromOffset(0, 37),
-		BackgroundTransparency = 1,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Pallet.Module,
 		BorderSizePixel = 0,
 		Visible = false,
 		ScrollBarThickness = 2,
@@ -1423,7 +1467,7 @@ function WindowClass:CreateTab(Settings)
 		Name = 'Divider',
 		Size = UDim2.new(1, 0, 0, 1),
 		Position = UDim2.fromOffset(0, 37),
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundColor3 = Pallet.DividerLight,
 		BackgroundTransparency = 0.928,
 		BorderSizePixel = 0,
 		Visible = false,
@@ -1470,10 +1514,10 @@ function WindowClass:CreateTab(Settings)
 		end
 	end)
 	ArrowButton.MouseEnter:Connect(function()
-		Arrow.ImageColor3 = Color3.fromRGB(220, 220, 220)
+		Arrow.ImageColor3 = Pallet.IconHover
 	end)
 	ArrowButton.MouseLeave:Connect(function()
-		Arrow.ImageColor3 = Color3.fromRGB(140, 140, 140)
+		Arrow.ImageColor3 = Pallet.IconGray
 	end)
 	WindowList:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 		Children.CanvasSize = UDim2.fromOffset(0, WindowList.AbsoluteContentSize.Y)
@@ -1664,7 +1708,7 @@ function VapeLibrary:CreateWindow()
 			Position = UDim2.new(1, 1, 0, 1),
 			BackgroundTransparency = 1,
 			Image = GetAsset('guiv4.png'),
-			ImageColor3 = Color3.fromRGB(5, 132, 102)
+			ImageColor3 = Pallet.Accent
 		})
 	})
 
@@ -1672,7 +1716,7 @@ function VapeLibrary:CreateWindow()
 		Name = "Divider",
 		Position = UDim2.new(0, 0, 0, 37),
 		Size = UDim2.new(1, 0, 0, 1),
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundColor3 = Pallet.DividerLight,
 		BackgroundTransparency = 0.928,
 		BorderSizePixel = 0,
 		Parent = MainFrame
@@ -1698,7 +1742,6 @@ function VapeLibrary:CreateWindow()
 		MainFrame.Size = UDim2.fromOffset(220, 42 + ContentHeight)
 	end)
 
-	setmetatable({ClickGui = ClickGui, MainFrame = MainFrame}, WindowClass)
 	local WindowApi = setmetatable({ClickGui = ClickGui, MainFrame = MainFrame}, WindowClass)
 
 	UserInputService.InputBegan:Connect(function(Input, GameProcessed)
@@ -1760,11 +1803,11 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 			Size = UDim2.new(1, -16, 0, 1),
 			Position = UDim2.new(0, 8, 0, 36),
 			BackgroundTransparency = 0.65,
-			BackgroundColor3 = Color3.fromRGB(131, 131, 131),
-			BorderSizePixel = 0
-		}),
-		Make("TextLabel", {
-			Name = "Text",
+		BackgroundColor3 = Pallet.Outline,
+		BorderSizePixel = 0
+	}),
+	Make("TextLabel", {
+		Name = "Text",
 			Size = UDim2.new(1, -16, 1, -48),
 			Position = UDim2.new(0, 8, 0, 44),
 			BackgroundTransparency = 1,
@@ -1810,6 +1853,7 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 	Tween(Notification, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 60 + Size.Y), BackgroundTransparency = 0.15})
 
 	local Closed = false
+	local Hovered = IsMouseInFrame(Notification)
 
 	local CloseTween = TweenService:Create(Notification, TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1})
 
@@ -1817,14 +1861,26 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 		Notification:Destroy()
 	end)
 
-	Notification.Close.MouseButton1Click:Connect(function()
-		CloseTween:Play()
+	local NotificationApi = {
+		Object = Notification
+	}
+
+	function NotificationApi:Dismiss()
+		if Closed then return end
 		Closed = true
+		CloseTween:Play()
+	end
+
+	Notification.Close.MouseButton1Click:Connect(function()
+		NotificationApi:Dismiss()
 	end)
 
 	if not Settings.IsPinned then
 		local Remaining = Settings.Duration
 		local TimeLabel = Notification.Time
+
+		Notification.MouseEnter:Connect(function() Hovered = true end)
+		Notification.MouseLeave:Connect(function() Hovered = false end)
 
 		while true do
 			task.wait(0.1)
@@ -1833,8 +1889,10 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 				break
 			end
 
-			Remaining -= 0.1
-			TimeLabel.Text = string.format("<b>%.1f</b>", Remaining)
+			if not Hovered then
+				Remaining -= 0.1
+				TimeLabel.Text = string.format("<b>%.1f</b>", Remaining)
+			end
 
 			if Remaining <= 0 then
 				break
@@ -1842,9 +1900,12 @@ function VapeLibrary:CreateNotification(NotificationSettings)
 		end
 
 		if not Closed then
-			CloseTween:Play()
+			NotificationApi:Dismiss()
 		end
 	end
+
+	return NotificationApi
 end
+
 
 return VapeLibrary
