@@ -11,18 +11,13 @@ local VapeLibrary = {
 			Text = Color3.fromRGB(200, 200, 200),
 			Accent = Color3.fromRGB(5, 132, 102),
 			Outline = Color3.fromRGB(131, 131, 131),
-			OutlineBright = Color3.fromRGB(190, 190, 190),
+			OutlineDarker = Color3.fromRGB(190, 190, 190),
 			Divider = Color3.new(0.19, 0.19, 0.19),
 			DividerLight = Color3.new(1, 1, 1),
 			IconGray = Color3.fromRGB(140, 140, 140),
 			IconHover = Color3.fromRGB(220, 220, 220),
 			Font = Font.fromEnum(Enum.Font.Arial),
-			Tween = TweenInfo.new(0.16, Enum.EasingStyle.Linear),
-			GUIColor = {
-				Hue = 0.46,
-				Sat = 0.96,
-				Value = 0.52
-			}
+			Tween = TweenInfo.new(0.16, Enum.EasingStyle.Linear)
 		},
 		ScreenGui = nil,
 		ClickGui = nil,
@@ -164,11 +159,11 @@ local function MakeCorner(Parent, Radius)
 	})
 end
 
-local function MakeOutline(Parent, MakeBright)
+local function MakeOutline(Parent, MakeLessBright)
 	return Make("UIStroke", {
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Color = MakeBright and VapeLibrary.Internal.Pallet.OutlineBright or VapeLibrary.Internal.Pallet.Outline,
-		Transparency =  MakeBright and 0.75 or 0,
+		Color = MakeLessBright and VapeLibrary.Internal.Pallet.OutlineDarker or VapeLibrary.Internal.Pallet.Outline,
+		Transparency =  MakeLessBright and 0.75 or 0,
 		Parent = Parent
 	})
 end
@@ -267,13 +262,13 @@ local function GetTableSize(Table)
 end
 
 local function SanitizeKey(Key : Enum.KeyCode | string)
-    local keyString = typeof(Key) == "EnumItem" and Key.Name or Key
+	local keyString = typeof(Key) == "EnumItem" and Key.Name or Key
 
-    if typeof(keyString) == "string" then
-        return (keyString:gsub("(%l)(%u)", "%1 %2"))
-    end
+	if typeof(keyString) == "string" then
+		return (keyString:gsub("(%l)(%u)", "%1 %2"))
+	end
 
-    return nil
+	return nil
 end
 
 local function AddMaid(Object)
@@ -356,7 +351,7 @@ local function CreateToggle(OptionSettings, Children, Api, IsModuleElement)
 	local function InternalToggle()
 		OptionApi.Enabled = not OptionApi.Enabled
 		Tween(KnobHolder, Pallet.Tween, {
-			BackgroundColor3 = OptionApi.Enabled and Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value) or (Hovered and ColorLight(Pallet.Main, 0.37) or ColorLight(Pallet.Main, 0.14))
+			BackgroundColor3 = OptionApi.Enabled and Pallet.Accent or (Hovered and ColorLight(Pallet.Main, 0.37) or ColorLight(Pallet.Main, 0.14))
 		})
 		Tween(Knob, Pallet.Tween, {
 			Position = UDim2.fromOffset(OptionApi.Enabled and 12 or 2, 2)
@@ -562,7 +557,7 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 	Fill.Name = 'Fill'
 	Fill.Size = UDim2.fromScale(math.clamp((OptionApi.Value - OptionSettings.Min) / (OptionSettings.Max - OptionSettings.Min), 0.04, 0.96), 1)
 	Fill.Position = UDim2.new()
-	Fill.BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value)
+	Fill.BackgroundColor3 = Pallet.Accent
 	Fill.Parent = Background
 	local KnobHolder = Make('Frame', {
 		Name = 'Knob',
@@ -578,7 +573,7 @@ local function CreateSlider(OptionSettings, Children, Api, IsModuleElement)
 		Size = UDim2.fromOffset(14, 14),
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value),
+		BackgroundColor3 = Pallet.Accent,
 		Parent = KnobHolder
 	})
 	if OptionSettings.Tooltip ~= "" then
@@ -1261,7 +1256,6 @@ function TabClass:CreateModule(Settings)
 		Name = Settings.Name or "Default Name",
 		Tooltip = Settings.Tooltip or "",
 		Function = Settings.Function or function(...) end,
-
 	}
 	local Pallet = VapeLibrary.Internal.Pallet
 	local ParentTab = self
@@ -1431,16 +1425,23 @@ local WindowClass = {}
 WindowClass.__index = WindowClass
 
 function WindowClass:CreateTab(Settings)
+	Settings = Settings or {}
+	Settings = {
+		Name = Settings.Name or "Default Name",
+		Tooltip = Settings.Tooltip or "",
+		Icon = Settings.Icon or 'combaticon.png',
+		Function = Settings.Function or function(...) end,
+	}
 	local Pallet = VapeLibrary.Internal.Pallet
 	local CategoryApi = {
-		Type = 'Category',
+		Type = 'Tab',
 		Expanded = false,
 		Options = {},
 		Name = Settings.Name
 	}
 
 	local Window = Make('TextButton', {
-		Name = Settings.Name..'Category',
+		Name = Settings.Name..'Tab',
 		Size = UDim2.fromOffset(220, 41),
 		Position = UDim2.fromOffset(236, 60),
 		BackgroundColor3 = Pallet.Main,
@@ -1456,17 +1457,17 @@ function WindowClass:CreateTab(Settings)
 	MakeDraggable(Window)
 	local Icon = Make('ImageLabel', {
 		Name = 'Icon',
-		Size = Settings.Size or UDim2.fromOffset(16, 16),
-		Position = UDim2.fromOffset(12, ((Settings.Size or UDim2.fromOffset(16, 16)).X.Offset > 20 and 14 or 13)),
+		Size = UDim2.fromOffset(16, 16),
+		Position = UDim2.fromOffset(12, 13),
 		BackgroundTransparency = 1,
-		Image = GetAsset(Settings.Icon or 'combaticon.png'),
+		Image = GetAsset(Settings.Icon),
 		ImageColor3 = Pallet.Text,
 		Parent = Window
 	})
 	local Title = Make('TextLabel', {
 		Name = 'Title',
-		Size = UDim2.new(1, -((Settings.Size and Settings.Size.X.Offset or 16) > 18 and 40 or 33), 0, 41),
-		Position = UDim2.fromOffset(math.abs(((Settings.Size and Settings.Size.X.Offset or 16) > 18 and 40 or 33)), 0),
+		Size = UDim2.new(1, -35, 0, 41),
+		Position = UDim2.fromOffset(35, 0),
 		BackgroundTransparency = 1,
 		Text = Settings.Name,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -1575,25 +1576,22 @@ function WindowClass:CreateTab(Settings)
 		BackgroundColor3 = Pallet.Main,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
-		Text = (Settings.Icon and string.rep(" ", 12) or "    ")..Settings.Name,
+		Text = (Settings.Icon and string.rep(" ", 12))..Settings.Name,
 		TextColor3 = ColorDark(Pallet.Text, 0.16),
 		TextSize = 14,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		FontFace = Pallet.Font,
 		Parent = VapeLibrary.Internal.MainChildren
 	})
-	local CatIcon
-	if Settings.Icon then
-		CatIcon = Make('ImageLabel', {
-			Name = 'Icon',
-			Size = Settings.Size or UDim2.fromOffset(16, 16),
-			Position = UDim2.fromOffset(13, 13),
-			BackgroundTransparency = 1,
-			Image = GetAsset(Settings.Icon),
-			ImageColor3 = ColorDark(Pallet.Text, 0.16),
-			Parent = CategoryButton
-		})
-	end
+	local CatIcon = Make('ImageLabel', {
+		Name = 'Icon',
+		Size = Settings.Size or UDim2.fromOffset(16, 16),
+		Position = UDim2.fromOffset(13, 13),
+		BackgroundTransparency = 1,
+		Image = GetAsset(Settings.Icon),
+		ImageColor3 = ColorDark(Pallet.Text, 0.16),
+		Parent = CategoryButton
+	})
 	local CatArrow = Make('ImageLabel', {
 		Name = 'Arrow',
 		Size = UDim2.fromOffset(4, 8),
@@ -1615,7 +1613,7 @@ function WindowClass:CreateTab(Settings)
 		Tween(CatArrow, Pallet.Tween, {
 			Position = UDim2.new(1, self.Enabled and -14 or -20, 0, 16)
 		})
-		CategoryButton.TextColor3 = self.Enabled and Color3.fromHSV(VapeLibrary.Internal.Pallet.GUIColor.Hue, VapeLibrary.Internal.Pallet.GUIColor.Sat, VapeLibrary.Internal.Pallet.GUIColor.Value) or Pallet.Text
+		CategoryButton.TextColor3 = self.Enabled and Pallet.Accent or Pallet.Text
 		if CatIcon then
 			CatIcon.ImageColor3 = CategoryButton.TextColor3
 		end
@@ -1693,11 +1691,11 @@ function WindowClass:CreateNotification(NotificationSettings)
 			Size = UDim2.new(1, -16, 0, 1),
 			Position = UDim2.new(0, 8, 0, 36),
 			BackgroundTransparency = 0.65,
-		BackgroundColor3 = Pallet.Outline,
-		BorderSizePixel = 0
-	}),
-	Make("TextLabel", {
-		Name = "Text",
+			BackgroundColor3 = Pallet.Outline,
+			BorderSizePixel = 0
+		}),
+		Make("TextLabel", {
+			Name = "Text",
 			Size = UDim2.new(1, -16, 1, -48),
 			Position = UDim2.new(0, 8, 0, 44),
 			BackgroundTransparency = 1,
@@ -1766,35 +1764,55 @@ function WindowClass:CreateNotification(NotificationSettings)
 	end)
 
 	if not Settings.IsPinned then
-		local Remaining = Settings.Duration
-		local TimeLabel = Notification.Time
+		task.spawn(function()
+			local Remaining = Settings.Duration
+			local TimeLabel = Notification.Time
 
-		Notification.MouseEnter:Connect(function() Hovered = true end)
-		Notification.MouseLeave:Connect(function() Hovered = false end)
+			Notification.MouseEnter:Connect(function() Hovered = true end)
+			Notification.MouseLeave:Connect(function() Hovered = false end)
 
-		while true do
-			task.wait(0.1)
+			while true do
+				task.wait(0.1)
 
-			if Closed then
-				break
+				if Closed then
+					break
+				end
+
+				if not Hovered then
+					Remaining -= 0.1
+					TimeLabel.Text = string.format("<b>%.1f</b>", Remaining)
+				end
+
+				if Remaining <= 0 then
+					break
+				end
 			end
 
-			if not Hovered then
-				Remaining -= 0.1
-				TimeLabel.Text = string.format("<b>%.1f</b>", Remaining)
+			if not Closed then
+				NotificationApi:Dismiss()
 			end
-
-			if Remaining <= 0 then
-				break
-			end
-		end
-
-		if not Closed then
-			NotificationApi:Dismiss()
-		end
+		end)
 	end
 
 	return NotificationApi
+end
+
+function WindowClass:RemoveWindow()
+	WindowClass:CloseGui()
+
+	if VapeLibrary.Internal.BlurType == "Blur" then
+		VapeLibrary.Internal.Blur:Destroy()
+	end
+
+	if VapeLibrary.Internal.ScreenGui then
+		VapeLibrary.Internal.ScreenGui:Destroy()
+	end
+	VapeLibrary.Internal.ScreenGui = nil
+	VapeLibrary.Internal.MainChildren = nil
+	VapeLibrary.Internal.MainFrame = nil
+	VapeLibrary.Internal.ClickGui = nil
+	VapeLibrary.Internal.Tabs = {}
+	VapeLibrary.Internal.Modules = {}
 end
 
 function WindowClass:SetKeybind(NewKey)
@@ -1814,6 +1832,7 @@ function WindowClass:OpenGui()
 	else
 		RunService:SetRobloxGuiFocused(VapeLibrary.Internal.ClickGui.Visible)
 	end
+	return self
 end
 
 function WindowClass:CloseGui()
@@ -1823,6 +1842,7 @@ function WindowClass:CloseGui()
 	else
 		RunService:SetRobloxGuiFocused(VapeLibrary.Internal.ClickGui.Visible)
 	end
+	return self
 end
 
 function VapeLibrary:CreateWindow()
@@ -1977,3 +1997,5 @@ function VapeLibrary:CreateWindow()
 
 	return WindowApi
 end
+
+return VapeLibrary
