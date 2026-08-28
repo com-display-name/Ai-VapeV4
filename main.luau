@@ -24,6 +24,7 @@ local VapeLibrary = {
 		MainFrame = nil,
 		MainChildren = nil,
 		NotificationFrame = nil,
+        Scale = 0,
 		Tooltip = nil,
 		Blur = nil,
 		Modules = {},
@@ -186,7 +187,7 @@ local function MakeDraggable(Gui, Window)
 						DragPosition = (DragPosition // 3) * 3
 						Position = (Position // 3) * 3
 					end
-					Gui.Position = UDim2.fromOffset(Position.X + DragPosition.X, Position.Y + DragPosition.Y)
+					Gui.Position = UDim2.fromOffset((Position.X + DragPosition.X) / VapeLibrary.Internal.Scale, (Position.Y + DragPosition.Y) / VapeLibrary.Internal.Scale)
 				end
 			end)
 
@@ -1908,8 +1909,11 @@ function VapeLibrary:CreateWindow()
 
 	local UIScale = Make("UIScale", {
 		Parent = ClickGui,
-		Scale = math.max(VapeLibrary.Internal.ScreenGui.AbsoluteSize.X / 1920, 1)
+		Scale = math.max(VapeLibrary.Internal.ScreenGui.AbsoluteSize.X / 2000, 1)
 	})
+    
+    
+    VapeLibrary.Internal.Scale = UIScale.Scale
 
 	local MainFrame = Make("TextButton", {
 		Name = "Main",
